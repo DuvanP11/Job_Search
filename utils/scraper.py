@@ -61,27 +61,75 @@ class BuscadorEmpleos:
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Buscar ofertas (selectores actualizados)
-            ofertas = soup.find_all('article', attrs={'data-test': 'offer-card'})
+            # Buscar ofertas con múltiples selectores de fallback
+            ofertas = []
+            
+            # Intentar selectores en orden de prioridad
+            selectores_ofertas = [
+                ('article', {'data-test': 'offer-card'}),
+                ('article', {'class': 'box_offer'}),
+                ('div', {'class': 'bRS'}),
+                ('article', None),  # Cualquier article
+            ]
+            
+            for tag, attrs in selectores_ofertas:
+                if attrs:
+                    ofertas = soup.find_all(tag, attrs=attrs)
+                else:
+                    ofertas = soup.find_all(tag)
+                if ofertas:
+                    logger.info(f"✓ Encontradas ofertas con selector: {tag} {attrs}")
+                    break
+            
             if not ofertas:
-                ofertas = soup.find_all('article', class_='box_offer')
+                logger.warning(f"⚠️ No se encontraron ofertas en Computrabajo (selectores no coinciden)")
+                return
             
             ofertas_procesadas = 0
             for oferta in ofertas[:30]:  # Limitar a 30 por búsqueda
                 try:
-                    # Extraer información
-                    titulo_elem = oferta.find('a', class_='js-o-link') or oferta.find('h2')
-                    empresa_elem = oferta.find('p', class_='fs16') or oferta.find('div', attrs={'data-test': 'company-name'})
-                    ubicacion_elem = oferta.find('p', class_='fs13') or oferta.find('div', attrs={'data-test': 'location'})
-                    fecha_elem = oferta.find('p', class_='fs13 fc_base') or oferta.find('time')
+                    # Múltiples selectores para título
+                    titulo_elem = (
+                        oferta.find('a', class_='js-o-link') or
+                        oferta.find('h2') or
+                        oferta.find('h3') or
+                        oferta.find('a', class_='js-o-link') or
+                        oferta.find('a', href=True)
+                    )
                     
                     if not titulo_elem:
                         continue
                     
-                    # Construir datos de la oferta
-                    link = titulo_elem.get('href', '')
+                    # Múltiples selectores para empresa
+                    empresa_elem = (
+                        oferta.find('p', class_='fs16') or
+                        oferta.find('div', attrs={'data-test': 'company-name'}) or
+                        oferta.find('span', class_='company') or
+                        oferta.find(text=re.compile(r'Empresa|Company', re.I))
+                    )
+                    
+                    # Múltiples selectores para ubicación
+                    ubicacion_elem = (
+                        oferta.find('p', class_='fs13') or
+                        oferta.find('div', attrs={'data-test': 'location'}) or
+                        oferta.find('span', class_='location')
+                    )
+                    
+                    # Múltiples selectores para fecha
+                    fecha_elem = (
+                        oferta.find('p', class_='fs13 fc_base') or
+                        oferta.find('time') or
+                        oferta.find('span', class_='date')
+                    )
+                    
+                    # Construir link
+                    link = titulo_elem.get('href', '') if titulo_elem else ''
                     if link and not link.startswith('http'):
                         link = 'https://www.computrabajo.com.co' + link
+                    
+                    # Validar que tengamos al menos título y link
+                    if not titulo_elem or not link:
+                        continue
                     
                     # Parsear fecha de publicación
                     fecha_publicacion = self._parsear_fecha(fecha_elem.text.strip() if fecha_elem else '')
@@ -104,7 +152,7 @@ class BuscadorEmpleos:
                         ofertas_procesadas += 1
                 
                 except Exception as e:
-                    logger.debug(f"Error procesando oferta: {str(e)}")
+                    logger.debug(f"Error procesando oferta de Computrabajo: {str(e)}")
                     continue
             
             logger.info(f"✅ {ofertas_procesadas} ofertas válidas de Computrabajo")
