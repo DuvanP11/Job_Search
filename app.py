@@ -253,6 +253,41 @@ def health_check():
     })
 
 
+@app.route('/test-busqueda', methods=['GET'])
+def test_busqueda():
+    """Endpoint de prueba - retorna datos dummy sin scraping"""
+    try:
+        ofertas_dummy = [
+            {
+                'titulo': 'Analista de Datos (PRUEBA)',
+                'empresa': 'Empresa Test',
+                'ubicacion': 'Bogotá',
+                'link': 'https://example.com/test',
+                'portal': 'TEST',
+                'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                'descripcion': 'Oferta de prueba',
+                'score': 75
+            }
+        ]
+        
+        return jsonify({
+            'success': True,
+            'ofertas': ofertas_dummy,
+            'resumen': {
+                'total_ofertas': 1,
+                'score_promedio': 75.0,
+                'portales_consultados': 1,
+                'fecha_busqueda': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Manejo de error 404"""
