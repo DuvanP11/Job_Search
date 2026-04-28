@@ -56,8 +56,8 @@ def buscar():
             'modalidades': data.get('modalidades', ['remoto', 'híbrido', 'presencial']),
             'experiencia_minima': int(data.get('experiencia_minima', 0)),
             'experiencia_maxima': int(data.get('experiencia_maxima', 15)),
-            'fecha_desde': data.get('fecha_desde', None),  # NUEVO: filtro de fecha
-            'fecha_hasta': data.get('fecha_hasta', None),  # NUEVO: filtro de fecha
+            'fecha_desde': data.get('fecha_desde', None),
+            'fecha_hasta': data.get('fecha_hasta', None),
         }
         
         # Keywords
@@ -78,26 +78,77 @@ def buscar():
         
         # Ejecutar búsqueda
         print(f"🚀 Iniciando búsqueda con configuración: {config_busqueda}")
+        print(f"📊 Portales activos: {portales}")
         
-        buscador = BuscadorEmpleos(config_busqueda, keywords, portales)
-        buscador.ejecutar_busqueda()
-        buscador.eliminar_duplicados()
-        
-        # Aplicar filtro de fechas si se especificó
-        if config_busqueda['fecha_desde'] or config_busqueda['fecha_hasta']:
-            buscador.filtrar_por_fechas(
-                fecha_desde=config_busqueda['fecha_desde'],
-                fecha_hasta=config_busqueda['fecha_hasta']
-            )
-        
-        buscador.ordenar_por_score()
-        
-        # Guardar en caché
-        resultados_cache = buscador.ofertas_encontradas
-        ultima_busqueda = datetime.now()
+        try:
+            buscador = BuscadorEmpleos(config_busqueda, keywords, portales)
+            buscador.ejecutar_busqueda()
+            buscador.eliminar_duplicados()
+            
+            # Aplicar filtro de fechas si se especificó
+            if config_busqueda['fecha_desde'] or config_busqueda['fecha_hasta']:
+                buscador.filtrar_por_fechas(
+                    fecha_desde=config_busqueda['fecha_desde'],
+                    fecha_hasta=config_busqueda['fecha_hasta']
+                )
+            
+            buscador.ordenar_por_score()
+            
+            # Guardar en caché
+            resultados_cache = buscador.ofertas_encontradas
+            ultima_busqueda = datetime.now()
+            
+        except Exception as e:
+            print(f"❌ Error en búsqueda: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            # Retornar error pero con JSON válido
+            return jsonify({
+                'success': False,
+                'error': f'Error al ejecutar búsqueda: {str(e)}',
+                'ofertas': [],
+                'resumen': {
+                    'total_ofertas': 0,
+                    'score_promedio': 0,
+                    'portales_consultados': 0,
+                    'fecha_busqueda': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }), 200  # Retornar 200 con error en JSON, no 500
         
         # Preparar respuesta
         resumen = {
+            'total_ofertas': len(resultados_cache),
+            'score_promedio': round(sum(o['score'] for o in resultados_cache) / len(resultados_cache), 1) if resultados_cache else 0,
+            'portales_consultados': len([p for p, activo in portales.items() if activo]),
+            'fecha_busqueda': ultima_busqueda.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        print(f"✅ Búsqueda completada: {resumen['total_ofertas']} ofertas encontradas")
+        
+        return jsonify({
+            'success': True,
+            'ofertas': resultados_cache[:100],  # Limitar a top 100
+            'resumen': resumen
+        }), 200
+    
+    except Exception as e:
+        print(f"❌ Error general en endpoint /buscar: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # SIEMPRE retornar JSON válido, nunca crashear
+        return jsonify({
+            'success': False,
+            'error': f'Error del servidor: {str(e)}',
+            'ofertas': [],
+            'resumen': {
+                'total_ofertas': 0,
+                'score_promedio': 0,
+                'portales_consultados': 0,
+                'fecha_busqueda': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }), 200  # Retornar 200 con error en JSON
             'total': len(resultados_cache),
             'por_portal': buscador.obtener_estadisticas_portales(),
             'por_ubicacion': buscador.obtener_estadisticas_ubicacion(),
