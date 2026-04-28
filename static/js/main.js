@@ -91,7 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const portales = [
             document.getElementById('portal_computrabajo').checked,
             document.getElementById('portal_elempleo').checked,
-            document.getElementById('portal_magneto').checked
+            document.getElementById('portal_magneto').checked,
+            document.getElementById('portal_indeed').checked,
+            document.getElementById('portal_trabajando').checked
         ];
         
         if (!portales.some(p => p)) {
@@ -155,7 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
             keywords_bonus: keywords_bonus,
             portal_computrabajo: document.getElementById('portal_computrabajo').checked,
             portal_elempleo: document.getElementById('portal_elempleo').checked,
-            portal_magneto: document.getElementById('portal_magneto').checked
+            portal_magneto: document.getElementById('portal_magneto').checked,
+            portal_indeed: document.getElementById('portal_indeed').checked,
+            portal_trabajando: document.getElementById('portal_trabajando').checked
         };
     }
     
@@ -289,6 +293,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('portal_computrabajo').checked = true;
             document.getElementById('portal_elempleo').checked = true;
             document.getElementById('portal_magneto').checked = true;
+            document.getElementById('portal_indeed').checked = true;
+            document.getElementById('portal_trabajando').checked = true;
             
             // Ocultar resultados
             resultadosSection.classList.add('d-none');

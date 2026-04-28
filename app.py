@@ -72,6 +72,8 @@ def buscar():
             'computrabajo': data.get('portal_computrabajo', True),
             'elempleo': data.get('portal_elempleo', True),
             'magneto': data.get('portal_magneto', True),
+            'indeed': data.get('portal_indeed', True),
+            'trabajando': data.get('portal_trabajando', True),
         }
         
         # Ejecutar búsqueda

@@ -234,6 +234,132 @@ class BuscadorEmpleos:
         except Exception as e:
             logger.error(f"❌ Error en Magneto365: {str(e)}")
     
+    def buscar_indeed(self, titulo, ubicacion):
+        """Buscar ofertas en Indeed Colombia"""
+        logger.info(f"🔍 Buscando en Indeed: {titulo} - {ubicacion}")
+        
+        try:
+            # Construir URL de búsqueda para Indeed Colombia
+            query = quote_plus(titulo)
+            loc = quote_plus(ubicacion) if ubicacion != 'Remoto' else ''
+            url = f"https://co.indeed.com/jobs?q={query}&l={loc}"
+            
+            response = self.session.get(url, timeout=15)
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en Indeed")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar ofertas (Indeed usa divs con clase específica)
+            ofertas = soup.find_all('div', class_='job_seen_beacon') or soup.find_all('div', class_='jobsearch-SerpJobCard')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:30]:
+                try:
+                    titulo_elem = oferta.find('h2', class_='jobTitle') or oferta.find('a', class_='jcs-JobTitle')
+                    empresa_elem = oferta.find('span', class_='companyName') or oferta.find('span', attrs={'data-testid': 'company-name'})
+                    ubicacion_elem = oferta.find('div', class_='companyLocation') or oferta.find('div', attrs={'data-testid': 'text-location'})
+                    link_elem = oferta.find('a', class_='jcs-JobTitle') or titulo_elem
+                    fecha_elem = oferta.find('span', class_='date')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    link = link_elem.get('href', '') if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = 'https://co.indeed.com' + link
+                    
+                    fecha_publicacion = self._parsear_fecha(fecha_elem.text.strip() if fecha_elem else '')
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
+                        'ubicacion': ubicacion_elem.text.strip() if ubicacion_elem else ubicacion,
+                        'link': link,
+                        'portal': 'Indeed',
+                        'fecha_publicacion': fecha_publicacion,
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': ''
+                    }
+                    
+                    if self.aplicar_filtros(oferta_data):
+                        oferta_data['score'] = self.calcular_score(oferta_data)
+                        self.ofertas_encontradas.append(oferta_data)
+                        ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error procesando oferta: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas válidas de Indeed")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en Indeed: {str(e)}")
+    
+    def buscar_trabajando(self, titulo, ubicacion):
+        """Buscar ofertas en Trabajando.com Colombia"""
+        logger.info(f"🔍 Buscando en Trabajando.com: {titulo} - {ubicacion}")
+        
+        try:
+            query = quote_plus(titulo)
+            url = f"https://www.trabajando.com.co/empleos?q={query}"
+            
+            response = self.session.get(url, timeout=15)
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en Trabajando.com")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar ofertas
+            ofertas = soup.find_all('div', class_='job-item') or soup.find_all('article', class_='offer')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:30]:
+                try:
+                    titulo_elem = oferta.find('h3') or oferta.find('a', class_='job-title')
+                    empresa_elem = oferta.find('span', class_='company')
+                    ubicacion_elem = oferta.find('span', class_='location')
+                    link_elem = oferta.find('a')
+                    fecha_elem = oferta.find('time') or oferta.find('span', class_='date')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    link = link_elem.get('href', '') if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = 'https://www.trabajando.com.co' + link
+                    
+                    fecha_publicacion = self._parsear_fecha(fecha_elem.text.strip() if fecha_elem else '')
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
+                        'ubicacion': ubicacion_elem.text.strip() if ubicacion_elem else ubicacion,
+                        'link': link,
+                        'portal': 'Trabajando.com',
+                        'fecha_publicacion': fecha_publicacion,
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': ''
+                    }
+                    
+                    if self.aplicar_filtros(oferta_data):
+                        oferta_data['score'] = self.calcular_score(oferta_data)
+                        self.ofertas_encontradas.append(oferta_data)
+                        ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error procesando oferta: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas válidas de Trabajando.com")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en Trabajando.com: {str(e)}")
+    
     def _parsear_fecha(self, texto_fecha):
         """
         Parsear texto de fecha a formato YYYY-MM-DD
@@ -402,6 +528,12 @@ class BuscadorEmpleos:
                 
                 if self.portales.get('magneto', False):
                     self.buscar_magneto(titulo, ubicacion)
+                
+                if self.portales.get('indeed', False):
+                    self.buscar_indeed(titulo, ubicacion)
+                
+                if self.portales.get('trabajando', False):
+                    self.buscar_trabajando(titulo, ubicacion)
                 
                 time.sleep(1)  # Pausa entre búsquedas
         
