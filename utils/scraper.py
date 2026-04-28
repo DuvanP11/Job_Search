@@ -46,120 +46,72 @@ class BuscadorEmpleos:
         })
     
     def buscar_computrabajo(self, titulo, ubicacion):
-        """Buscar ofertas en Computrabajo.com.co"""
+        """Buscar ofertas en Computrabajo.com.co - Versión simplificada para debug"""
         logger.info(f"🔍 Buscando en Computrabajo: {titulo} - {ubicacion}")
         
         try:
-            # Construir URL de búsqueda
-            query = f"{titulo} {ubicacion}"
+            # Construir URL de búsqueda - versión simple
+            query = titulo  # Solo el título, sin ubicación para simplificar
             url = f"https://www.computrabajo.com.co/trabajo-de-{quote_plus(query)}"
             
+            logger.info(f"📍 URL: {url}")
+            
             response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Computrabajo")
                 return
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Buscar ofertas con múltiples selectores de fallback
-            ofertas = []
-            
-            # Intentar selectores en orden de prioridad
-            selectores_ofertas = [
-                ('article', {'data-test': 'offer-card'}),
-                ('article', {'class': 'box_offer'}),
-                ('div', {'class': 'bRS'}),
-                ('article', None),  # Cualquier article
-            ]
-            
-            for tag, attrs in selectores_ofertas:
-                if attrs:
-                    ofertas = soup.find_all(tag, attrs=attrs)
-                else:
-                    ofertas = soup.find_all(tag)
-                if ofertas:
-                    logger.info(f"✓ Encontradas ofertas con selector: {tag} {attrs}")
-                    break
-            
-            if not ofertas:
-                logger.warning(f"⚠️ No se encontraron ofertas en Computrabajo (selectores no coinciden)")
-                return
+            # Estrategia SUPER SIMPLE: buscar TODOS los links que parezcan ofertas
+            todos_los_links = soup.find_all('a', href=True)
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:30]:  # Limitar a 30 por búsqueda
+            for link_elem in todos_los_links[:100]:  # Revisar primeros 100 links
                 try:
-                    # Múltiples selectores para título
-                    titulo_elem = (
-                        oferta.find('a', class_='js-o-link') or
-                        oferta.find('h2') or
-                        oferta.find('h3') or
-                        oferta.find('a', class_='js-o-link') or
-                        oferta.find('a', href=True)
-                    )
+                    href = link_elem.get('href', '')
+                    texto = link_elem.text.strip()
                     
-                    if not titulo_elem:
-                        continue
-                    
-                    # Múltiples selectores para empresa
-                    empresa_elem = (
-                        oferta.find('p', class_='fs16') or
-                        oferta.find('div', attrs={'data-test': 'company-name'}) or
-                        oferta.find('span', class_='company') or
-                        oferta.find(text=re.compile(r'Empresa|Company', re.I))
-                    )
-                    
-                    # Múltiples selectores para ubicación
-                    ubicacion_elem = (
-                        oferta.find('p', class_='fs13') or
-                        oferta.find('div', attrs={'data-test': 'location'}) or
-                        oferta.find('span', class_='location')
-                    )
-                    
-                    # Múltiples selectores para fecha
-                    fecha_elem = (
-                        oferta.find('p', class_='fs13 fc_base') or
-                        oferta.find('time') or
-                        oferta.find('span', class_='date')
-                    )
-                    
-                    # Construir link
-                    link = titulo_elem.get('href', '') if titulo_elem else ''
-                    if link and not link.startswith('http'):
-                        link = 'https://www.computrabajo.com.co' + link
-                    
-                    # Validar que tengamos al menos título y link
-                    if not titulo_elem or not link:
-                        continue
-                    
-                    # Parsear fecha de publicación
-                    fecha_publicacion = self._parsear_fecha(fecha_elem.text.strip() if fecha_elem else '')
-                    
-                    oferta_data = {
-                        'titulo': titulo_elem.text.strip(),
-                        'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
-                        'ubicacion': ubicacion_elem.text.strip() if ubicacion_elem else ubicacion,
-                        'link': link,
-                        'portal': 'Computrabajo',
-                        'fecha_publicacion': fecha_publicacion,
-                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
-                        'descripcion': ''  # Computrabajo no muestra descripción en listados
-                    }
-                    
-                    # Aplicar filtros
-                    if self.aplicar_filtros(oferta_data):
-                        oferta_data['score'] = self.calcular_score(oferta_data)
+                    # Si el link parece una oferta de trabajo (tiene "oferta" o va a una página de detalle)
+                    if (href and texto and len(texto) > 10 and 
+                        ('oferta' in href or 'empleo' in href or 'trabajo' in href)):
+                        
+                        # Construir link completo
+                        link_completo = href if href.startswith('http') else f'https://www.computrabajo.com.co{href}'
+                        
+                        # Crear oferta simple
+                        oferta_data = {
+                            'titulo': texto[:200],  # Limitar largo
+                            'empresa': 'No especificada',
+                            'ubicacion': ubicacion,
+                            'link': link_completo,
+                            'portal': 'Computrabajo',
+                            'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                            'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                            'descripcion': '',
+                            'score': 50  # Score por defecto
+                        }
+                        
+                        # NO aplicar filtros por ahora - aceptar TODO
                         self.ofertas_encontradas.append(oferta_data)
                         ofertas_procesadas += 1
+                        
+                        if ofertas_procesadas >= 20:  # Limitar a 20
+                            break
                 
                 except Exception as e:
-                    logger.debug(f"Error procesando oferta de Computrabajo: {str(e)}")
+                    logger.debug(f"Error en link: {str(e)}")
                     continue
             
-            logger.info(f"✅ {ofertas_procesadas} ofertas válidas de Computrabajo")
-            time.sleep(2)  # Respetar el servidor
+            logger.info(f"✅ {ofertas_procesadas} ofertas encontradas de Computrabajo")
+            time.sleep(2)
             
         except Exception as e:
             logger.error(f"❌ Error en Computrabajo: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def buscar_elempleo(self, titulo, ubicacion):
         """Buscar ofertas en ElEmpleo.com"""
