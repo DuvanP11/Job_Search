@@ -27,6 +27,33 @@ document.addEventListener('DOMContentLoaded', function() {
     btnLimpiar.addEventListener('click', limpiarFormulario);
     btnExportar.addEventListener('click', exportarExcel);
     
+    // Botones de selección masiva de portales
+    document.getElementById('btn-seleccionar-todos-portales').addEventListener('click', function() {
+        const checkboxes = [
+            'portal_computrabajo', 'portal_elempleo', 'portal_magneto', 
+            'portal_indeed', 'portal_trabajando', 'portal_linkedin',
+            'portal_serviciodeempleo', 'portal_talentbox', 'portal_colsubsidio', 
+            'portal_unmejorempleo'
+        ];
+        checkboxes.forEach(id => {
+            document.getElementById(id).checked = true;
+        });
+        mostrarNotificacion('Todos los portales seleccionados', 'info');
+    });
+    
+    document.getElementById('btn-deseleccionar-todos-portales').addEventListener('click', function() {
+        const checkboxes = [
+            'portal_computrabajo', 'portal_elempleo', 'portal_magneto', 
+            'portal_indeed', 'portal_trabajando', 'portal_linkedin',
+            'portal_serviciodeempleo', 'portal_talentbox', 'portal_colsubsidio', 
+            'portal_unmejorempleo'
+        ];
+        checkboxes.forEach(id => {
+            document.getElementById(id).checked = false;
+        });
+        mostrarNotificacion('Todos los portales deseleccionados', 'info');
+    });
+    
     /**
      * Manejar envío del formulario de búsqueda
      */
