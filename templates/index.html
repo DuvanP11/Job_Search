@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Empleos - Portal Colombia</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-search me-2"></i>
+                Portal de Empleos Colombia
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="fas fa-home"></i> Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#estadisticas">
+                            <i class="fas fa-chart-bar"></i> Estadísticas
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section py-5 bg-light">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-briefcase text-primary"></i>
+                Encuentra tu Trabajo Ideal
+            </h1>
+            <p class="lead text-muted">
+                Busca automáticamente en múltiples portales de empleo de Colombia
+            </p>
+        </div>
+    </section>
+
+    <!-- Formulario de Búsqueda -->
+    <section class="py-5">
+        <div class="container">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        Configura tu Búsqueda
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="formulario-busqueda">
+                        <!-- Sección 1: Información Básica -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-user-tie me-2"></i>
+                                    Información Básica
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="cargos" class="form-label">
+                                    <i class="fas fa-briefcase"></i> Cargos / Títulos *
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="cargos" 
+                                    rows="3" 
+                                    placeholder="Ej: Data Analyst, Fraud Analyst (uno por línea)"
+                                    required
+                                >Data Analyst
+Fraud Analyst
+Analista de Datos</textarea>
+                                <small class="text-muted">Escribe un cargo por línea</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="ubicaciones" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i> Ubicaciones *
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="ubicaciones" 
+                                    rows="3" 
+                                    placeholder="Ej: Bogotá, Medellín, Remoto (una por línea)"
+                                    required
+                                >Bogotá
+Medellín
+Remoto</textarea>
+                                <small class="text-muted">Escribe una ubicación por línea</small>
+                            </div>
+                        </div>
+
+                        <!-- Sección 2: Filtros Económicos -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                    Filtros Económicos y Contractuales
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="salario_minimo" class="form-label">
+                                    <i class="fas fa-dollar-sign"></i> Salario Mínimo (COP)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="salario_minimo" 
+                                    value="3000000"
+                                    min="0"
+                                    step="100000"
+                                    placeholder="Ej: 3000000"
+                                >
+                                <small class="text-muted">Dejar en 0 para no filtrar</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="tipo_contrato" class="form-label">
+                                    <i class="fas fa-file-contract"></i> Tipo de Contrato
+                                </label>
+                                <select class="form-select" id="tipo_contrato">
+                                    <option value="todos">Todos</option>
+                                    <option value="indefinido" selected>Indefinido</option>
+                                    <option value="temporal">Temporal</option>
+                                    <option value="prestacion_servicios">Prestación de servicios</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-laptop-house"></i> Modalidades
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="mod_remoto" value="remoto" checked>
+                                    <label class="form-check-label" for="mod_remoto">Remoto</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="mod_hibrido" value="híbrido" checked>
+                                    <label class="form-check-label" for="mod_hibrido">Híbrido</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="mod_presencial" value="presencial" checked>
+                                    <label class="form-check-label" for="mod_presencial">Presencial</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección 3: Experiencia y Fechas -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    Experiencia y Rango de Fechas
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="experiencia_min" class="form-label">
+                                    <i class="fas fa-hourglass-start"></i> Experiencia Mínima (años)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="experiencia_min" 
+                                    value="0"
+                                    min="0"
+                                    max="20"
+                                >
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="experiencia_max" class="form-label">
+                                    <i class="fas fa-hourglass-end"></i> Experiencia Máxima (años)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="experiencia_max" 
+                                    value="15"
+                                    min="0"
+                                    max="30"
+                                >
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="fecha_desde" class="form-label">
+                                    <i class="fas fa-calendar-check"></i> Publicadas Desde
+                                </label>
+                                <input 
+                                    type="date" 
+                                    class="form-control" 
+                                    id="fecha_desde"
+                                >
+                                <small class="text-muted">Fecha mínima de publicación</small>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="fecha_hasta" class="form-label">
+                                    <i class="fas fa-calendar-times"></i> Publicadas Hasta
+                                </label>
+                                <input 
+                                    type="date" 
+                                    class="form-control" 
+                                    id="fecha_hasta"
+                                >
+                                <small class="text-muted">Fecha máxima de publicación</small>
+                            </div>
+                        </div>
+
+                        <!-- Sección 4: Keywords -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-key me-2"></i>
+                                    Palabras Clave (Opcional)
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="keywords_incluir" class="form-label text-success">
+                                    <i class="fas fa-check-circle"></i> Incluir (debe tener al menos una)
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="keywords_incluir" 
+                                    rows="4" 
+                                    placeholder="Ej: python, sql, fraud"
+                                >python
+sql
+data analyst</textarea>
+                                <small class="text-muted">Una palabra clave por línea</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="keywords_excluir" class="form-label text-danger">
+                                    <i class="fas fa-times-circle"></i> Excluir (descalifica la oferta)
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="keywords_excluir" 
+                                    rows="4" 
+                                    placeholder="Ej: pasantía, call center"
+                                >pasantía
+practicante
+sin experiencia</textarea>
+                                <small class="text-muted">Una palabra clave por línea</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="keywords_bonus" class="form-label text-info">
+                                    <i class="fas fa-star"></i> Bonus (aumenta el score)
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="keywords_bonus" 
+                                    rows="4" 
+                                    placeholder="Ej: clickhouse, power bi"
+                                >clickhouse
+power bi
+remoto</textarea>
+                                <small class="text-muted">Una palabra clave por línea</small>
+                            </div>
+                        </div>
+
+                        <!-- Sección 5: Portales -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-globe me-2"></i>
+                                    Portales de Empleo
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="portal_computrabajo" checked>
+                                    <label class="form-check-label" for="portal_computrabajo">
+                                        <i class="fas fa-check text-success"></i> Computrabajo
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="portal_elempleo" checked>
+                                    <label class="form-check-label" for="portal_elempleo">
+                                        <i class="fas fa-check text-success"></i> ElEmpleo
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="portal_magneto" checked>
+                                    <label class="form-check-label" for="portal_magneto">
+                                        <i class="fas fa-check text-success"></i> Magneto365
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón de Búsqueda -->
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5" id="btn-buscar">
+                                    <i class="fas fa-search me-2"></i>
+                                    Buscar Ofertas
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg px-5 ms-3" id="btn-limpiar">
+                                    <i class="fas fa-eraser me-2"></i>
+                                    Limpiar Formulario
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading Spinner -->
+    <div id="loading-section" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+            <span class="visually-hidden">Buscando...</span>
+        </div>
+        <h4 class="mt-3">Buscando ofertas de empleo...</h4>
+        <p class="text-muted">Esto puede tomar unos minutos</p>
+    </div>
+
+    <!-- Resultados -->
+    <section id="resultados-section" class="py-5 d-none">
+        <div class="container">
+            <!-- Resumen -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-briefcase fa-3x text-primary mb-2"></i>
+                            <h3 id="total-ofertas" class="mb-0">0</h3>
+                            <p class="text-muted mb-0">Ofertas Encontradas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-star fa-3x text-warning mb-2"></i>
+                            <h3 id="score-promedio" class="mb-0">0</h3>
+                            <p class="text-muted mb-0">Score Promedio</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-globe fa-3x text-info mb-2"></i>
+                            <h3 id="total-portales" class="mb-0">0</h3>
+                            <p class="text-muted mb-0">Portales Consultados</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <button class="btn btn-success btn-lg w-100" id="btn-exportar">
+                                <i class="fas fa-file-excel me-2"></i>
+                                Exportar Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Resultados -->
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Ofertas de Empleo (Top 100)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tabla-resultados">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Score</th>
+                                    <th>Cargo</th>
+                                    <th>Empresa</th>
+                                    <th>Ubicación</th>
+                                    <th>Portal</th>
+                                    <th>Fecha Publicación</th>
+                                    <th>Link</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Resultados dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-code"></i> Desarrollado por <strong>Duvan Perilla</strong> | 
+                <i class="fas fa-calendar"></i> 2025 |
+                <a href="https://github.com/DuvanP11/Job_Search" target="_blank" class="text-white">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </p>
+            <small class="text-muted">Portal de búsqueda de empleos para Colombia</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
