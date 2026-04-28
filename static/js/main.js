@@ -282,8 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hace30dias.setDate(hace30dias.getDate() - 30);
             document.getElementById('fecha_desde').value = hace30dias.toISOString().split('T')[0];
             
-            document.getElementById('keywords_incluir').value = 'python\nsql\ndata analyst';
-            document.getElementById('keywords_excluir').value = 'pasantía\npracticante\nsin experiencia';
+            document.getElementById('keywords_incluir').value = '';
+            document.getElementById('keywords_excluir').value = '';
             document.getElementById('keywords_bonus').value = 'clickhouse\npower bi\nremoto';
             
             // Checkboxes

@@ -461,15 +461,16 @@ class BuscadorEmpleos:
         """Aplicar filtros de keywords a una oferta"""
         texto_completo = f"{oferta['titulo']} {oferta.get('descripcion', '')}".lower()
         
-        # Filtro de exclusión
+        # Filtro de exclusión (si está configurado)
         if self.keywords.get('excluir'):
             for keyword_excluir in self.keywords['excluir']:
                 if keyword_excluir.lower() in texto_completo:
                     logger.debug(f"❌ Excluida: {oferta['titulo'][:40]}... (contiene '{keyword_excluir}')")
                     return False
         
-        # Filtro de inclusión (al menos una keyword debe estar)
-        if self.keywords.get('incluir'):
+        # Filtro de inclusión (si está configurado)
+        # Si NO hay keywords de inclusión, aceptar todas
+        if self.keywords.get('incluir') and len(self.keywords['incluir']) > 0:
             tiene_keyword = False
             for keyword_incluir in self.keywords['incluir']:
                 if keyword_incluir.lower() in texto_completo:
