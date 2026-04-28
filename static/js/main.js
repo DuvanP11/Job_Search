@@ -159,7 +159,12 @@ document.addEventListener('DOMContentLoaded', function() {
             portal_elempleo: document.getElementById('portal_elempleo').checked,
             portal_magneto: document.getElementById('portal_magneto').checked,
             portal_indeed: document.getElementById('portal_indeed').checked,
-            portal_trabajando: document.getElementById('portal_trabajando').checked
+            portal_trabajando: document.getElementById('portal_trabajando').checked,
+            portal_linkedin: document.getElementById('portal_linkedin').checked,
+            portal_serviciodeempleo: document.getElementById('portal_serviciodeempleo').checked,
+            portal_talentbox: document.getElementById('portal_talentbox').checked,
+            portal_colsubsidio: document.getElementById('portal_colsubsidio').checked,
+            portal_unmejorempleo: document.getElementById('portal_unmejorempleo').checked
         };
     }
     
@@ -291,10 +296,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('mod_hibrido').checked = true;
             document.getElementById('mod_presencial').checked = true;
             document.getElementById('portal_computrabajo').checked = true;
-            document.getElementById('portal_elempleo').checked = true;
-            document.getElementById('portal_magneto').checked = true;
-            document.getElementById('portal_indeed').checked = true;
-            document.getElementById('portal_trabajando').checked = true;
+            document.getElementById('portal_elempleo').checked = false;
+            document.getElementById('portal_magneto').checked = false;
+            document.getElementById('portal_indeed').checked = false;
+            document.getElementById('portal_trabajando').checked = false;
+            document.getElementById('portal_linkedin').checked = false;
+            document.getElementById('portal_serviciodeempleo').checked = false;
+            document.getElementById('portal_talentbox').checked = false;
+            document.getElementById('portal_colsubsidio').checked = false;
+            document.getElementById('portal_unmejorempleo').checked = false;
             
             // Ocultar resultados
             resultadosSection.classList.add('d-none');

@@ -360,6 +360,340 @@ class BuscadorEmpleos:
         except Exception as e:
             logger.error(f"❌ Error en Trabajando.com: {str(e)}")
     
+    def buscar_linkedin(self, titulo, ubicacion):
+        """Buscar ofertas en LinkedIn Jobs"""
+        logger.info(f"🔍 Buscando en LinkedIn: {titulo} - {ubicacion}")
+        
+        try:
+            # LinkedIn requiere keywords específicos
+            query = f"{titulo} {ubicacion}".replace(' ', '%20')
+            url = f"https://www.linkedin.com/jobs/search/?keywords={query}&location=Colombia"
+            
+            logger.info(f"📍 URL: {url}")
+            
+            response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en LinkedIn")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar job cards de LinkedIn
+            job_cards = soup.find_all('div', class_='base-card')
+            if not job_cards:
+                job_cards = soup.find_all('li', class_='jobs-search-results__list-item')
+            
+            ofertas_procesadas = 0
+            for card in job_cards[:20]:
+                try:
+                    titulo_elem = card.find('h3') or card.find('a', class_='base-card__full-link')
+                    empresa_elem = card.find('h4') or card.find('span', class_='job-card-container__company-name')
+                    ubicacion_elem = card.find('span', class_='job-card-container__metadata-item')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    link_elem = card.find('a', href=True)
+                    link = link_elem['href'] if link_elem else ''
+                    
+                    if not link or 'linkedin.com/jobs/view' not in link:
+                        continue
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
+                        'ubicacion': ubicacion_elem.text.strip() if ubicacion_elem else ubicacion,
+                        'link': link,
+                        'portal': 'LinkedIn',
+                        'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': '',
+                        'score': 55  # LinkedIn tiene ofertas de calidad
+                    }
+                    
+                    self.ofertas_encontradas.append(oferta_data)
+                    ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error en oferta LinkedIn: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas de LinkedIn")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en LinkedIn: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    def buscar_serviciodeempleo(self, titulo, ubicacion):
+        """Buscar en Servicio de Empleo (portal del gobierno)"""
+        logger.info(f"🔍 Buscando en Servicio de Empleo: {titulo} - {ubicacion}")
+        
+        try:
+            # Servicio de Empleo tiene estructura diferente
+            query = titulo.replace(' ', '+')
+            url = f"https://www.serviciodeempleo.gov.co/busqueda?q={query}"
+            
+            logger.info(f"📍 URL: {url}")
+            
+            response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en Servicio de Empleo")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar ofertas en el portal del gobierno
+            ofertas = soup.find_all('div', class_='vacancy-item') or soup.find_all('article')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:20]:
+                try:
+                    titulo_elem = oferta.find('h3') or oferta.find('h2') or oferta.find('a')
+                    empresa_elem = oferta.find('span', class_='company') or oferta.find('p')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    link_elem = oferta.find('a', href=True)
+                    link = link_elem['href'] if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = f"https://www.serviciodeempleo.gov.co{link}"
+                    
+                    if not link:
+                        continue
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': empresa_elem.text.strip() if empresa_elem else 'Gobierno/Empresa',
+                        'ubicacion': ubicacion,
+                        'link': link,
+                        'portal': 'Servicio de Empleo',
+                        'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': '',
+                        'score': 50
+                    }
+                    
+                    self.ofertas_encontradas.append(oferta_data)
+                    ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error en oferta Servicio de Empleo: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas de Servicio de Empleo")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en Servicio de Empleo: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    def buscar_talentbox(self, titulo, ubicacion):
+        """Buscar en Talentbox"""
+        logger.info(f"🔍 Buscando en Talentbox: {titulo} - {ubicacion}")
+        
+        try:
+            query = titulo.replace(' ', '-')
+            url = f"https://talentbox.la/trabajos/{query}"
+            
+            logger.info(f"📍 URL: {url}")
+            
+            response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en Talentbox")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar job cards
+            ofertas = soup.find_all('div', class_='job-card') or soup.find_all('article')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:20]:
+                try:
+                    titulo_elem = oferta.find('h3') or oferta.find('h2') or oferta.find('a', class_='job-title')
+                    empresa_elem = oferta.find('span', class_='company-name') or oferta.find('p')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    link_elem = oferta.find('a', href=True)
+                    link = link_elem['href'] if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = f"https://talentbox.la{link}"
+                    
+                    if not link:
+                        continue
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
+                        'ubicacion': ubicacion,
+                        'link': link,
+                        'portal': 'Talentbox',
+                        'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': '',
+                        'score': 50
+                    }
+                    
+                    self.ofertas_encontradas.append(oferta_data)
+                    ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error en oferta Talentbox: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas de Talentbox")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en Talentbox: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    def buscar_colsubsidio(self, titulo, ubicacion):
+        """Buscar en Colsubsidio Empleo"""
+        logger.info(f"🔍 Buscando en Colsubsidio: {titulo} - {ubicacion}")
+        
+        try:
+            url = "https://www.colsubsidio.com/empleo"
+            
+            logger.info(f"📍 URL: {url}")
+            
+            response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en Colsubsidio")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar ofertas
+            ofertas = soup.find_all('div', class_='job-listing') or soup.find_all('article')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:20]:
+                try:
+                    titulo_elem = oferta.find('h3') or oferta.find('h2') or oferta.find('a')
+                    
+                    if not titulo_elem:
+                        continue
+                    
+                    # Filtrar por keyword
+                    if titulo.lower() not in titulo_elem.text.lower():
+                        continue
+                    
+                    link_elem = oferta.find('a', href=True)
+                    link = link_elem['href'] if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = f"https://www.colsubsidio.com{link}"
+                    
+                    if not link:
+                        link = url
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': 'Colsubsidio',
+                        'ubicacion': ubicacion,
+                        'link': link,
+                        'portal': 'Colsubsidio',
+                        'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': '',
+                        'score': 50
+                    }
+                    
+                    self.ofertas_encontradas.append(oferta_data)
+                    ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error en oferta Colsubsidio: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas de Colsubsidio")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en Colsubsidio: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    def buscar_unmejorempleo(self, titulo, ubicacion):
+        """Buscar en UnMejorEmpleo"""
+        logger.info(f"🔍 Buscando en UnMejorEmpleo: {titulo} - {ubicacion}")
+        
+        try:
+            query = titulo.replace(' ', '+')
+            url = f"https://www.unmejorempleo.com.co/empleos?q={query}"
+            
+            logger.info(f"📍 URL: {url}")
+            
+            response = self.session.get(url, timeout=15)
+            logger.info(f"📡 Status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"❌ Error {response.status_code} en UnMejorEmpleo")
+                return
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Buscar ofertas
+            ofertas = soup.find_all('div', class_='job-item') or soup.find_all('article') or soup.find_all('tr')
+            
+            ofertas_procesadas = 0
+            for oferta in ofertas[:20]:
+                try:
+                    titulo_elem = oferta.find('a', class_='job-title') or oferta.find('h3') or oferta.find('a')
+                    
+                    if not titulo_elem or len(titulo_elem.text.strip()) < 10:
+                        continue
+                    
+                    link_elem = titulo_elem if titulo_elem.name == 'a' else oferta.find('a', href=True)
+                    link = link_elem['href'] if link_elem else ''
+                    if link and not link.startswith('http'):
+                        link = f"https://www.unmejorempleo.com.co{link}"
+                    
+                    if not link:
+                        continue
+                    
+                    oferta_data = {
+                        'titulo': titulo_elem.text.strip(),
+                        'empresa': 'No especificada',
+                        'ubicacion': ubicacion,
+                        'link': link,
+                        'portal': 'UnMejorEmpleo',
+                        'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
+                        'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
+                        'descripcion': '',
+                        'score': 50
+                    }
+                    
+                    self.ofertas_encontradas.append(oferta_data)
+                    ofertas_procesadas += 1
+                
+                except Exception as e:
+                    logger.debug(f"Error en oferta UnMejorEmpleo: {str(e)}")
+                    continue
+            
+            logger.info(f"✅ {ofertas_procesadas} ofertas de UnMejorEmpleo")
+            time.sleep(2)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en UnMejorEmpleo: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
     def _parsear_fecha(self, texto_fecha):
         """
         Parsear texto de fecha a formato YYYY-MM-DD
@@ -535,6 +869,22 @@ class BuscadorEmpleos:
                 
                 if self.portales.get('trabajando', False):
                     self.buscar_trabajando(titulo, ubicacion)
+                
+                # NUEVOS PORTALES
+                if self.portales.get('linkedin', False):
+                    self.buscar_linkedin(titulo, ubicacion)
+                
+                if self.portales.get('serviciodeempleo', False):
+                    self.buscar_serviciodeempleo(titulo, ubicacion)
+                
+                if self.portales.get('talentbox', False):
+                    self.buscar_talentbox(titulo, ubicacion)
+                
+                if self.portales.get('colsubsidio', False):
+                    self.buscar_colsubsidio(titulo, ubicacion)
+                
+                if self.portales.get('unmejorempleo', False):
+                    self.buscar_unmejorempleo(titulo, ubicacion)
                 
                 time.sleep(1)  # Pausa entre búsquedas
         

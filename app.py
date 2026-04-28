@@ -74,6 +74,11 @@ def buscar():
             'magneto': data.get('portal_magneto', True),
             'indeed': data.get('portal_indeed', True),
             'trabajando': data.get('portal_trabajando', True),
+            'linkedin': data.get('portal_linkedin', False),
+            'serviciodeempleo': data.get('portal_serviciodeempleo', False),
+            'talentbox': data.get('portal_talentbox', False),
+            'colsubsidio': data.get('portal_colsubsidio', False),
+            'unmejorempleo': data.get('portal_unmejorempleo', False),
         }
         
         # Ejecutar búsqueda
@@ -149,30 +154,6 @@ def buscar():
                 'fecha_busqueda': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         }), 200  # Retornar 200 con error en JSON
-            'total': len(resultados_cache),
-            'por_portal': buscador.obtener_estadisticas_portales(),
-            'por_ubicacion': buscador.obtener_estadisticas_ubicacion(),
-            'score_promedio': buscador.obtener_score_promedio()
-        }
-        
-        # Limitar resultados a top 100 para enviar al frontend
-        ofertas_limitadas = resultados_cache[:100] if len(resultados_cache) > 100 else resultados_cache
-        
-        return jsonify({
-            'success': True,
-            'ofertas': ofertas_limitadas,
-            'resumen': resumen,
-            'timestamp': ultima_busqueda.strftime('%Y-%m-%d %H:%M:%S')
-        })
-        
-    except Exception as e:
-        print(f"❌ Error en búsqueda: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': f'Error durante la búsqueda: {str(e)}'
-        }), 500
 
 
 @app.route('/exportar', methods=['GET'])
