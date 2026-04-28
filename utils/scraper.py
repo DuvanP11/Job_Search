@@ -50,12 +50,13 @@ class BuscadorEmpleos:
         logger.info(f"🔍 Buscando en Computrabajo: {titulo} - {ubicacion}")
         
         try:
-            # Construir URL muy simple
-            url = f"https://www.computrabajo.com.co/trabajo-de-{titulo.replace(' ', '-').lower()}"
+            # Construir URL - reemplazar espacios con guiones
+            titulo_limpio = titulo.replace(' ', '-').lower()
+            url = f"https://www.computrabajo.com.co/trabajo-de-{titulo_limpio}"
             logger.info(f"📍 URL: {url}")
             
-            # Intentar hacer request
-            response = self.session.get(url, timeout=10)
+            # Request con timeout corto
+            response = self.session.get(url, timeout=5)
             logger.info(f"📡 Status: {response.status_code}")
             
             if response.status_code != 200:
@@ -65,23 +66,22 @@ class BuscadorEmpleos:
             # Parsear HTML
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Buscar CUALQUIER link que parezca oferta
+            # Buscar links de ofertas
             todos_links = soup.find_all('a', href=True)
             logger.info(f"📊 Links encontrados: {len(todos_links)}")
             
             ofertas_agregadas = 0
             
-            for link in todos_links[:50]:  # Solo primeros 50
+            for link in todos_links[:30]:  # Reducido de 50 a 30
                 try:
                     href = link.get('href', '')
                     texto = link.text.strip()
                     
-                    # Filtro MUY simple: href contiene "oferta" y texto tiene más de 15 chars
+                    # Filtro simple
                     if 'oferta' in href.lower() and len(texto) > 15:
                         
-                        # Crear oferta simple
                         oferta = {
-                            'titulo': texto[:100],  # Limitar título
+                            'titulo': texto[:100],
                             'empresa': 'Computrabajo',
                             'ubicacion': ubicacion,
                             'link': href if href.startswith('http') else f'https://www.computrabajo.com.co{href}',
@@ -92,21 +92,19 @@ class BuscadorEmpleos:
                             'score': 50
                         }
                         
-                        # Agregar SIN aplicar filtros
                         self.ofertas_encontradas.append(oferta)
                         ofertas_agregadas += 1
                         
-                        if ofertas_agregadas >= 10:  # Máximo 10 por búsqueda
+                        if ofertas_agregadas >= 5:  # Reducido de 10 a 5
                             break
                 
                 except Exception as e:
-                    continue  # Ignorar errores en links individuales
+                    continue
             
             logger.info(f"✅ {ofertas_agregadas} ofertas de Computrabajo")
             
         except Exception as e:
             logger.error(f"❌ Error Computrabajo: {str(e)}")
-            # NO crashear - solo registrar error
     
     def buscar_elempleo(self, titulo, ubicacion):
         """Buscar ofertas en ElEmpleo.com"""
@@ -116,7 +114,7 @@ class BuscadorEmpleos:
             query = f"{titulo} {ubicacion}"
             url = f"https://www.elempleo.com/co/ofertas-empleo/?buscar={quote_plus(query)}"
             
-            response = self.session.get(url, timeout=15)
+            response = self.session.get(url, timeout=5)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en ElEmpleo")
                 return
@@ -127,7 +125,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='resultado') or soup.find_all('article', class_='job-card')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:30]:
+            for oferta in ofertas[:5]:
                 try:
                     titulo_elem = oferta.find('a', class_='js-offer-title') or oferta.find('h2')
                     empresa_elem = oferta.find('p', class_='company') or oferta.find('span', class_='company-name')
@@ -176,7 +174,7 @@ class BuscadorEmpleos:
             query = f"{titulo} {ubicacion}"
             url = f"https://www.magneto365.com/co/ofertas?q={quote_plus(query)}"
             
-            response = self.session.get(url, timeout=15)
+            response = self.session.get(url, timeout=5)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Magneto365")
                 return
@@ -187,7 +185,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='offer-card') or soup.find_all('article', class_='job-listing')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:30]:
+            for oferta in ofertas[:5]:
                 try:
                     titulo_elem = oferta.find('h3') or oferta.find('a', class_='offer-title')
                     empresa_elem = oferta.find('span', class_='company') or oferta.find('p', class_='empresa')
@@ -239,7 +237,7 @@ class BuscadorEmpleos:
             loc = quote_plus(ubicacion) if ubicacion != 'Remoto' else ''
             url = f"https://co.indeed.com/jobs?q={query}&l={loc}"
             
-            response = self.session.get(url, timeout=15)
+            response = self.session.get(url, timeout=5)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Indeed")
                 return
@@ -250,7 +248,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='job_seen_beacon') or soup.find_all('div', class_='jobsearch-SerpJobCard')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:30]:
+            for oferta in ofertas[:5]:
                 try:
                     titulo_elem = oferta.find('h2', class_='jobTitle') or oferta.find('a', class_='jcs-JobTitle')
                     empresa_elem = oferta.find('span', class_='companyName') or oferta.find('span', attrs={'data-testid': 'company-name'})
@@ -301,7 +299,7 @@ class BuscadorEmpleos:
             query = quote_plus(titulo)
             url = f"https://www.trabajando.com.co/empleos?q={query}"
             
-            response = self.session.get(url, timeout=15)
+            response = self.session.get(url, timeout=5)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Trabajando.com")
                 return
@@ -312,7 +310,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='job-item') or soup.find_all('article', class_='offer')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:30]:
+            for oferta in ofertas[:5]:
                 try:
                     titulo_elem = oferta.find('h3') or oferta.find('a', class_='job-title')
                     empresa_elem = oferta.find('span', class_='company')
