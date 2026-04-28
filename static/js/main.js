@@ -205,15 +205,15 @@ document.addEventListener('DOMContentLoaded', function() {
         resultadosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // Actualizar estadísticas
-        document.getElementById('total-ofertas').textContent = result.resumen.total;
+        document.getElementById('total-ofertas').textContent = result.resumen.total_ofertas;
         document.getElementById('score-promedio').textContent = result.resumen.score_promedio.toFixed(1);
-        document.getElementById('total-portales').textContent = Object.keys(result.resumen.por_portal).length;
+        document.getElementById('total-portales').textContent = result.resumen.portales_consultados;
         
         // Llenar tabla de resultados
         llenarTablaResultados(result.ofertas);
         
         // Mostrar notificación de éxito
-        mostrarNotificacion(`¡Búsqueda completada! Se encontraron ${result.resumen.total} ofertas`, 'success');
+        mostrarNotificacion(`¡Búsqueda completada! Se encontraron ${result.resumen.total_ofertas} ofertas`, 'success');
     }
     
     /**
