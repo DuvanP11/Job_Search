@@ -57,7 +57,7 @@ class BuscadorEmpleos:
             url = f"https://www.computrabajo.com.co/trabajo-de-{titulo_limpio}"
             logger.info(f"📍 URL: {url}")
             
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=7)
             logger.info(f"📡 Status: {response.status_code}")
             
             # Si falla, intentar URL alternativa
@@ -65,7 +65,7 @@ class BuscadorEmpleos:
                 # Intentar con búsqueda genérica
                 url = f"https://www.computrabajo.com.co/ofertas-de-trabajo/"
                 logger.info(f"📍 URL alternativa: {url}")
-                response = self.session.get(url, timeout=10)
+                response = self.session.get(url, timeout=7)
                 
                 if response.status_code != 200:
                     logger.warning(f"❌ Error {response.status_code}")
@@ -94,7 +94,7 @@ class BuscadorEmpleos:
             elementos_procesados = set()  # Evitar duplicados
             
             # Procesar articles/divs
-            for oferta in ofertas[:50]:  # Aumentado a 50
+            for oferta in ofertas[:30]:  # Balanceado
                 try:
                     # Buscar título con múltiples selectores
                     titulo_elem = (
@@ -144,7 +144,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_agregadas += 1
                     
-                    if ofertas_agregadas >= 20:
+                    if ofertas_agregadas >= 10:
                         break
                 
                 except Exception as e:
@@ -152,8 +152,8 @@ class BuscadorEmpleos:
                     continue
             
             # Si aún no tenemos suficientes, procesar links directos
-            if ofertas_agregadas < 20:
-                for link in todos_links[:50]:
+            if ofertas_agregadas < 10:
+                for link in todos_links[:30]:  # Balanceado
                     try:
                         texto = link.text.strip()
                         href = link.get('href', '')
@@ -178,7 +178,7 @@ class BuscadorEmpleos:
                         self.ofertas_encontradas.append(oferta_data)
                         ofertas_agregadas += 1
                         
-                        if ofertas_agregadas >= 20:
+                        if ofertas_agregadas >= 10:
                             break
                     
                     except Exception as e:
@@ -197,7 +197,7 @@ class BuscadorEmpleos:
             query = f"{titulo} {ubicacion}"
             url = f"https://www.elempleo.com/co/ofertas-empleo/?buscar={quote_plus(query)}"
             
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=7)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en ElEmpleo")
                 return
@@ -208,7 +208,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='resultado') or soup.find_all('article', class_='job-card')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:20]:
+            for oferta in ofertas[:10]:
                 try:
                     titulo_elem = oferta.find('a', class_='js-offer-title') or oferta.find('h2')
                     empresa_elem = oferta.find('p', class_='company') or oferta.find('span', class_='company-name')
@@ -257,7 +257,7 @@ class BuscadorEmpleos:
             query = f"{titulo} {ubicacion}"
             url = f"https://www.magneto365.com/co/ofertas?q={quote_plus(query)}"
             
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=7)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Magneto365")
                 return
@@ -268,7 +268,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='offer-card') or soup.find_all('article', class_='job-listing')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:20]:
+            for oferta in ofertas[:10]:
                 try:
                     titulo_elem = oferta.find('h3') or oferta.find('a', class_='offer-title')
                     empresa_elem = oferta.find('span', class_='company') or oferta.find('p', class_='empresa')
@@ -320,7 +320,7 @@ class BuscadorEmpleos:
             loc = quote_plus(ubicacion) if ubicacion != 'Remoto' else ''
             url = f"https://co.indeed.com/jobs?q={query}&l={loc}"
             
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=7)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Indeed")
                 return
@@ -331,7 +331,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='job_seen_beacon') or soup.find_all('div', class_='jobsearch-SerpJobCard')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:20]:
+            for oferta in ofertas[:10]:
                 try:
                     titulo_elem = oferta.find('h2', class_='jobTitle') or oferta.find('a', class_='jcs-JobTitle')
                     empresa_elem = oferta.find('span', class_='companyName') or oferta.find('span', attrs={'data-testid': 'company-name'})
@@ -382,7 +382,7 @@ class BuscadorEmpleos:
             query = quote_plus(titulo)
             url = f"https://www.trabajando.com.co/empleos?q={query}"
             
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=7)
             if response.status_code != 200:
                 logger.warning(f"❌ Error {response.status_code} en Trabajando.com")
                 return
@@ -393,7 +393,7 @@ class BuscadorEmpleos:
             ofertas = soup.find_all('div', class_='job-item') or soup.find_all('article', class_='offer')
             
             ofertas_procesadas = 0
-            for oferta in ofertas[:20]:
+            for oferta in ofertas[:10]:
                 try:
                     titulo_elem = oferta.find('h3') or oferta.find('a', class_='job-title')
                     empresa_elem = oferta.find('span', class_='company')
