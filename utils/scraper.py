@@ -46,72 +46,67 @@ class BuscadorEmpleos:
         })
     
     def buscar_computrabajo(self, titulo, ubicacion):
-        """Buscar ofertas en Computrabajo.com.co - Versión simplificada para debug"""
+        """Buscar ofertas en Computrabajo.com.co - Versión ULTRA SIMPLE"""
         logger.info(f"🔍 Buscando en Computrabajo: {titulo} - {ubicacion}")
         
         try:
-            # Construir URL de búsqueda - versión simple
-            query = titulo  # Solo el título, sin ubicación para simplificar
-            url = f"https://www.computrabajo.com.co/trabajo-de-{quote_plus(query)}"
-            
+            # Construir URL muy simple
+            url = f"https://www.computrabajo.com.co/trabajo-de-{titulo.replace(' ', '-').lower()}"
             logger.info(f"📍 URL: {url}")
             
-            response = self.session.get(url, timeout=15)
-            logger.info(f"📡 Status code: {response.status_code}")
+            # Intentar hacer request
+            response = self.session.get(url, timeout=10)
+            logger.info(f"📡 Status: {response.status_code}")
             
             if response.status_code != 200:
-                logger.warning(f"❌ Error {response.status_code} en Computrabajo")
+                logger.warning(f"❌ Error {response.status_code}")
                 return
             
+            # Parsear HTML
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Estrategia SUPER SIMPLE: buscar TODOS los links que parezcan ofertas
-            todos_los_links = soup.find_all('a', href=True)
+            # Buscar CUALQUIER link que parezca oferta
+            todos_links = soup.find_all('a', href=True)
+            logger.info(f"📊 Links encontrados: {len(todos_links)}")
             
-            ofertas_procesadas = 0
-            for link_elem in todos_los_links[:100]:  # Revisar primeros 100 links
+            ofertas_agregadas = 0
+            
+            for link in todos_links[:50]:  # Solo primeros 50
                 try:
-                    href = link_elem.get('href', '')
-                    texto = link_elem.text.strip()
+                    href = link.get('href', '')
+                    texto = link.text.strip()
                     
-                    # Si el link parece una oferta de trabajo (tiene "oferta" o va a una página de detalle)
-                    if (href and texto and len(texto) > 10 and 
-                        ('oferta' in href or 'empleo' in href or 'trabajo' in href)):
-                        
-                        # Construir link completo
-                        link_completo = href if href.startswith('http') else f'https://www.computrabajo.com.co{href}'
+                    # Filtro MUY simple: href contiene "oferta" y texto tiene más de 15 chars
+                    if 'oferta' in href.lower() and len(texto) > 15:
                         
                         # Crear oferta simple
-                        oferta_data = {
-                            'titulo': texto[:200],  # Limitar largo
-                            'empresa': 'No especificada',
+                        oferta = {
+                            'titulo': texto[:100],  # Limitar título
+                            'empresa': 'Computrabajo',
                             'ubicacion': ubicacion,
-                            'link': link_completo,
+                            'link': href if href.startswith('http') else f'https://www.computrabajo.com.co{href}',
                             'portal': 'Computrabajo',
                             'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
                             'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
                             'descripcion': '',
-                            'score': 50  # Score por defecto
+                            'score': 50
                         }
                         
-                        # NO aplicar filtros por ahora - aceptar TODO
-                        self.ofertas_encontradas.append(oferta_data)
-                        ofertas_procesadas += 1
+                        # Agregar SIN aplicar filtros
+                        self.ofertas_encontradas.append(oferta)
+                        ofertas_agregadas += 1
                         
-                        if ofertas_procesadas >= 20:  # Limitar a 20
+                        if ofertas_agregadas >= 10:  # Máximo 10 por búsqueda
                             break
                 
                 except Exception as e:
-                    logger.debug(f"Error en link: {str(e)}")
-                    continue
+                    continue  # Ignorar errores en links individuales
             
-            logger.info(f"✅ {ofertas_procesadas} ofertas encontradas de Computrabajo")
-            time.sleep(2)
+            logger.info(f"✅ {ofertas_agregadas} ofertas de Computrabajo")
             
         except Exception as e:
-            logger.error(f"❌ Error en Computrabajo: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"❌ Error Computrabajo: {str(e)}")
+            # NO crashear - solo registrar error
     
     def buscar_elempleo(self, titulo, ubicacion):
         """Buscar ofertas en ElEmpleo.com"""
