@@ -536,7 +536,7 @@ class BuscadorEmpleos:
         return hoy.strftime('%Y-%m-%d')
     
     def aplicar_filtros(self, oferta):
-        """Aplicar filtros de keywords y escolaridad a una oferta"""
+        """Aplicar filtros de keywords, escolaridad y nivel de inglés a una oferta"""
         texto_completo = f"{oferta['titulo']} {oferta.get('descripcion', '')}".lower()
         
         # Filtro de escolaridad (si está configurado y no es "todos")
@@ -561,6 +561,34 @@ class BuscadorEmpleos:
                 if not tiene_escolaridad:
                     logger.debug(f"⚠️ Sin escolaridad requerida ({escolaridad_requerida}): {oferta['titulo'][:40]}...")
                     return False
+        
+        # Filtro de nivel de inglés (si está configurado y no es "todos")
+        nivel_ingles_requerido = self.config.get('nivel_ingles', 'todos')
+        if nivel_ingles_requerido and nivel_ingles_requerido != 'todos':
+            # Mapeo de términos por nivel de inglés
+            terminos_ingles = {
+                'sin_nivel': [],  # Si selecciona "sin nivel", NO debe mencionar inglés
+                'basico': ['básico', 'basico', 'basic', 'a1', 'a2', 'elemental'],
+                'intermedio': ['intermedio', 'intermediate', 'b1', 'b2', 'conversacional'],
+                'avanzado': ['avanzado', 'advanced', 'c1', 'c2', 'fluent', 'fluido'],
+                'nativo': ['nativo', 'native', 'bilingüe', 'bilingual', 'bilingue']
+            }
+            
+            # Caso especial: "sin_nivel" significa que NO debe mencionar inglés
+            if nivel_ingles_requerido == 'sin_nivel':
+                menciona_ingles = any(palabra in texto_completo for palabra in ['inglés', 'ingles', 'english'])
+                if menciona_ingles:
+                    logger.debug(f"⚠️ Requiere inglés pero filtro es 'sin nivel': {oferta['titulo'][:40]}...")
+                    return False
+            else:
+                # Para otros niveles, debe mencionar el nivel específico
+                if nivel_ingles_requerido in terminos_ingles:
+                    terminos = terminos_ingles[nivel_ingles_requerido]
+                    tiene_nivel = any(termino in texto_completo for termino in terminos)
+                    
+                    if not tiene_nivel:
+                        logger.debug(f"⚠️ Sin nivel de inglés requerido ({nivel_ingles_requerido}): {oferta['titulo'][:40]}...")
+                        return False
         
         # Filtro de exclusión (si está configurado)
         if self.keywords.get('excluir'):
