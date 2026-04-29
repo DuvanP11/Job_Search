@@ -128,11 +128,31 @@ class BuscadorEmpleos:
                         oferta.find('span', class_=re.compile('empresa|company', re.I))
                     )
                     
+                    # Buscar ubicación REAL
+                    ubicacion_elem = (
+                        oferta.find('p', class_=re.compile('ubicacion|location|lugar', re.I)) or
+                        oferta.find('span', class_=re.compile('ubicacion|location|lugar', re.I)) or
+                        oferta.find(text=re.compile(r'Bogotá|Medellín|Cali|Barranquilla|Cartagena|Bucaramanga', re.I))
+                    )
+                    
+                    # Extraer texto de ubicación
+                    ubicacion_real = ubicacion  # Default: usar la buscada
+                    if ubicacion_elem:
+                        if hasattr(ubicacion_elem, 'text'):
+                            ubicacion_real = ubicacion_elem.text.strip()
+                        elif isinstance(ubicacion_elem, str):
+                            ubicacion_real = ubicacion_elem.strip()
+                    
+                    # Filtrar por ubicación si no coincide
+                    if ubicacion.lower() not in ubicacion_real.lower() and ubicacion.lower() != 'colombia' and ubicacion.lower() != 'remoto':
+                        logger.debug(f"⚠️ Ubicación no coincide: buscada='{ubicacion}', real='{ubicacion_real}'")
+                        continue
+                    
                     # Crear oferta
                     oferta_data = {
                         'titulo': texto_titulo[:150],
                         'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
-                        'ubicacion': ubicacion,
+                        'ubicacion': ubicacion_real,  # Usar ubicación REAL
                         'link': link,
                         'portal': 'Computrabajo',
                         'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
