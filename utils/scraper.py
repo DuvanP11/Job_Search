@@ -148,11 +148,38 @@ class BuscadorEmpleos:
                         logger.debug(f"⚠️ Ubicación no coincide: buscada='{ubicacion}', real='{ubicacion_real}'")
                         continue
                     
+                    # Buscar tipo de contrato REAL
+                    # Buscar en todo el texto de la oferta
+                    texto_oferta = oferta.get_text().lower()
+                    tipo_contrato_real = 'no_especificado'
+                    
+                    # Mapeo de términos a tipos de contrato
+                    if any(t in texto_oferta for t in ['indefinido', 'término indefinido', 'termino indefinido']):
+                        tipo_contrato_real = 'indefinido'
+                    elif any(t in texto_oferta for t in ['temporal', 'fijo', 'término fijo', 'termino fijo']):
+                        tipo_contrato_real = 'temporal'
+                    elif any(t in texto_oferta for t in ['obra labor', 'obra o labor', 'por obra']):
+                        tipo_contrato_real = 'obra_labor'
+                    elif any(t in texto_oferta for t in ['prestación de servicios', 'prestacion', 'honorarios']):
+                        tipo_contrato_real = 'prestacion_servicios'
+                    elif any(t in texto_oferta for t in ['aprendizaje', 'aprendiz', 'practicante']):
+                        tipo_contrato_real = 'aprendizaje'
+                    
+                    # Filtrar por tipo de contrato si el usuario especificó uno
+                    tipo_contrato_buscado = self.config.get('tipo_contrato', 'todos')
+                    if tipo_contrato_buscado and tipo_contrato_buscado != 'todos':
+                        # Solo filtrar si encontramos un tipo de contrato específico
+                        if tipo_contrato_real != 'no_especificado':
+                            if tipo_contrato_buscado != tipo_contrato_real:
+                                logger.debug(f"⚠️ Contrato no coincide: buscado='{tipo_contrato_buscado}', real='{tipo_contrato_real}': {texto_titulo[:40]}...")
+                                continue
+                    
                     # Crear oferta
                     oferta_data = {
                         'titulo': texto_titulo[:150],
                         'empresa': empresa_elem.text.strip() if empresa_elem else 'No especificada',
                         'ubicacion': ubicacion_real,  # Usar ubicación REAL
+                        'tipo_contrato': tipo_contrato_real,  # Agregar tipo de contrato
                         'link': link,
                         'portal': 'Computrabajo',
                         'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
