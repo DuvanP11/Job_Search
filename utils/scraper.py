@@ -623,42 +623,46 @@ class BuscadorEmpleos:
         logger.info("🚀 INICIANDO BÚSQUEDA AUTOMÁTICA DE EMPLEOS")
         logger.info("=" * 60)
         
-        # Iterar sobre combinaciones de título y ubicación
-        for titulo in self.config['titulos']:
-            for ubicacion in self.config['ubicaciones']:
-                
-                if self.portales.get('computrabajo', False):
-                    self.buscar_computrabajo(titulo, ubicacion)
-                
-                if self.portales.get('elempleo', False):
-                    self.buscar_elempleo(titulo, ubicacion)
-                
-                if self.portales.get('magneto', False):
-                    self.buscar_magneto(titulo, ubicacion)
-                
-                if self.portales.get('indeed', False):
-                    self.buscar_indeed(titulo, ubicacion)
-                
-                if self.portales.get('trabajando', False):
-                    self.buscar_trabajando(titulo, ubicacion)
-                
-                # NUEVOS PORTALES
-                if self.portales.get('linkedin', False):
-                    self.buscar_linkedin(titulo, ubicacion)
-                
-                if self.portales.get('serviciodeempleo', False):
-                    self.buscar_serviciodeempleo(titulo, ubicacion)
-                
-                if self.portales.get('talentbox', False):
-                    self.buscar_talentbox(titulo, ubicacion)
-                
-                if self.portales.get('colsubsidio', False):
-                    self.buscar_colsubsidio(titulo, ubicacion)
-                
-                if self.portales.get('unmejorempleo', False):
-                    self.buscar_unmejorempleo(titulo, ubicacion)
-                
-                time.sleep(1)  # Pausa entre búsquedas
+        # OPTIMIZACIÓN: Solo usar primer título y primera ubicación para evitar timeout
+        # Esto reduce de 3×2×10 = 60 búsquedas a 1×1×10 = 10 búsquedas
+        titulo = self.config['titulos'][0] if self.config['titulos'] else 'Analista'
+        ubicacion = self.config['ubicaciones'][0] if self.config['ubicaciones'] else 'Colombia'
+        
+        logger.info(f"📍 Buscando: {titulo} en {ubicacion}")
+        logger.info(f"ℹ️  NOTA: Solo se usa el primer cargo y ubicación para evitar timeout")
+        
+        if self.portales.get('computrabajo', False):
+            self.buscar_computrabajo(titulo, ubicacion)
+        
+        if self.portales.get('elempleo', False):
+            self.buscar_elempleo(titulo, ubicacion)
+        
+        if self.portales.get('magneto', False):
+            self.buscar_magneto(titulo, ubicacion)
+        
+        if self.portales.get('indeed', False):
+            self.buscar_indeed(titulo, ubicacion)
+        
+        if self.portales.get('trabajando', False):
+            self.buscar_trabajando(titulo, ubicacion)
+        
+        # NUEVOS PORTALES
+        if self.portales.get('linkedin', False):
+            self.buscar_linkedin(titulo, ubicacion)
+        
+        if self.portales.get('serviciodeempleo', False):
+            self.buscar_serviciodeempleo(titulo, ubicacion)
+        
+        if self.portales.get('talentbox', False):
+            self.buscar_talentbox(titulo, ubicacion)
+        
+        if self.portales.get('colsubsidio', False):
+            self.buscar_colsubsidio(titulo, ubicacion)
+        
+        if self.portales.get('unmejorempleo', False):
+            self.buscar_unmejorempleo(titulo, ubicacion)
+        
+        time.sleep(1)  # Pausa entre búsquedas
         
         logger.info("=" * 60)
         logger.info(f"✅ BÚSQUEDA COMPLETADA: {len(self.ofertas_encontradas)} ofertas encontradas")
