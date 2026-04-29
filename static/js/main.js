@@ -174,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pais: 'Colombia',
             salario_minimo: parseInt(document.getElementById('salario_minimo').value) || 0,
             tipo_contrato: document.getElementById('tipo_contrato').value,
+            escolaridad: document.getElementById('escolaridad').value,
             modalidades: modalidades,
             experiencia_minima: parseInt(document.getElementById('experiencia_min').value) || 0,
             experiencia_maxima: parseInt(document.getElementById('experiencia_max').value) || 15,
