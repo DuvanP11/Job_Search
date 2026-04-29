@@ -536,8 +536,31 @@ class BuscadorEmpleos:
         return hoy.strftime('%Y-%m-%d')
     
     def aplicar_filtros(self, oferta):
-        """Aplicar filtros de keywords a una oferta"""
+        """Aplicar filtros de keywords y escolaridad a una oferta"""
         texto_completo = f"{oferta['titulo']} {oferta.get('descripcion', '')}".lower()
+        
+        # Filtro de escolaridad (si está configurado y no es "todos")
+        escolaridad_requerida = self.config.get('escolaridad', 'todos')
+        if escolaridad_requerida and escolaridad_requerida != 'todos':
+            # Mapeo de términos de búsqueda por nivel educativo
+            terminos_escolaridad = {
+                'profesional': ['profesional', 'universitario', 'university', 'degree', 'pregrado'],
+                'tecnologo': ['tecnólogo', 'tecnologo', 'tecnológica'],
+                'tecnico': ['técnico', 'tecnico', 'technical'],
+                'bachiller': ['bachiller', 'secundaria', 'high school'],
+                'posgrado': ['posgrado', 'postgrado', 'postgraduate', 'especialización'],
+                'maestria': ['maestría', 'maestria', 'master', 'msc', 'm.sc'],
+                'doctorado': ['doctorado', 'phd', 'ph.d', 'doctor']
+            }
+            
+            # Buscar si menciona la escolaridad requerida
+            if escolaridad_requerida in terminos_escolaridad:
+                terminos = terminos_escolaridad[escolaridad_requerida]
+                tiene_escolaridad = any(termino in texto_completo for termino in terminos)
+                
+                if not tiene_escolaridad:
+                    logger.debug(f"⚠️ Sin escolaridad requerida ({escolaridad_requerida}): {oferta['titulo'][:40]}...")
+                    return False
         
         # Filtro de exclusión (si está configurado)
         if self.keywords.get('excluir'):
