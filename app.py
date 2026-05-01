@@ -439,6 +439,64 @@ def toggle_credenciales():
         }), 500
 
 
+# ==================== APIs DE DATOS (ROLES Y UBICACIONES) ====================
+
+@app.route('/api/roles')
+def get_roles():
+    """Obtener lista de roles profesionales"""
+    try:
+        from utils.roles_data import get_roles_list
+        
+        roles = get_roles_list()
+        return jsonify({
+            'success': True,
+            'roles': roles,
+            'count': len(roles)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/ubicaciones/paises')
+def get_paises():
+    """Obtener lista de países por región"""
+    try:
+        from utils.locations_data import get_paises_por_region
+        
+        paises_por_region = get_paises_por_region()
+        return jsonify({
+            'success': True,
+            'paises': paises_por_region
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/ubicaciones/ciudades/<pais>')
+def get_ciudades(pais):
+    """Obtener ciudades de un país"""
+    try:
+        from utils.locations_data import get_ciudades_por_pais
+        
+        ciudades = get_ciudades_por_pais(pais)
+        return jsonify({
+            'success': True,
+            'pais': pais,
+            'ciudades': ciudades
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # ==================== RUTAS DE AUTENTICACIÓN ====================
 
 @app.route('/login', methods=['GET', 'POST'])

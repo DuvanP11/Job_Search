@@ -7,5 +7,14 @@
     "avatar": "cat",
     "created_at": "2026-05-01T22:34:48.513737",
     "last_login": null
+  },
+  "2": {
+    "id": "2",
+    "username": "test2",
+    "email": "test2@test.com",
+    "password_hash": "70e01887f665f6276d548ec61cee7302$02aaafb58691cde2968e5c6df144716121d1f737b02e8512af4ed7d1f068d964",
+    "avatar": "dog",
+    "created_at": "2026-05-01T22:48:38.927961",
+    "last_login": null
   }
 }
