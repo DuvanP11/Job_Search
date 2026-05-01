@@ -34,6 +34,9 @@ class BuscadorEmpleos:
         self.keywords = keywords
         self.portales = portales
         self.ofertas_encontradas = []
+        self.max_ofertas_por_portal = config_busqueda.get('resultados_por_portal', 10)
+        
+        logger.info(f"📊 Máximo de ofertas por portal: {self.max_ofertas_por_portal}")
         
         # Configurar sesión HTTP
         self.session = requests.Session()
@@ -191,7 +194,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_agregadas += 1
                     
-                    if ofertas_agregadas >= 10:
+                    if ofertas_agregadas >= self.max_ofertas_por_portal:
                         break
                 
                 except Exception as e:
@@ -225,7 +228,7 @@ class BuscadorEmpleos:
                         self.ofertas_encontradas.append(oferta_data)
                         ofertas_agregadas += 1
                         
-                        if ofertas_agregadas >= 10:
+                        if ofertas_agregadas >= self.max_ofertas_por_portal:
                             break
                     
                     except Exception as e:
@@ -312,7 +315,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_procesadas += 1
                     
-                    if ofertas_procesadas >= 10:
+                    if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
                 
                 except Exception as e:
@@ -414,7 +417,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_procesadas += 1
                     
-                    if ofertas_procesadas >= 10:
+                    if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
                 
                 except Exception as e:
@@ -508,7 +511,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_procesadas += 1
                     
-                    if ofertas_procesadas >= 10:
+                    if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
                 
                 except Exception as e:
@@ -594,7 +597,7 @@ class BuscadorEmpleos:
                     self.ofertas_encontradas.append(oferta_data)
                     ofertas_procesadas += 1
                     
-                    if ofertas_procesadas >= 10:
+                    if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
                 
                 except Exception as e:

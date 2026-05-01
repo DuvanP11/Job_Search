@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             experiencia_maxima: parseInt(document.getElementById('experiencia_max').value) || 15,
             fecha_desde: document.getElementById('fecha_desde').value || null,
             fecha_hasta: document.getElementById('fecha_hasta').value || null,
+            resultados_por_portal: parseInt(document.getElementById('resultados_por_portal').value) || 10,
             keywords_incluir: keywords_incluir,
             keywords_excluir: keywords_excluir,
             keywords_bonus: keywords_bonus,
