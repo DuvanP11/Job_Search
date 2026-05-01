@@ -485,7 +485,7 @@ def register():
         else:
             flash('❌ El email o usuario ya están registrados', 'error')
     
-    return render_template('register.html', avatares=AVATARES)
+    return render_template('register.html', avatars=AVATARES)
 
 
 @app.route('/logout')
