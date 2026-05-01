@@ -288,6 +288,150 @@ def test_busqueda():
         }), 500
 
 
+# ==================== RUTAS DE CREDENCIALES ====================
+
+@app.route('/credenciales')
+def credenciales():
+    """Página de configuración de credenciales"""
+    from utils.credentials import credential_manager
+    
+    # Obtener portales configurados
+    portales = credential_manager.list_portals()
+    
+    return render_template('credenciales.html', portales=portales)
+
+
+@app.route('/api/credenciales/guardar', methods=['POST'])
+def guardar_credenciales():
+    """Guardar credenciales de un portal"""
+    try:
+        from utils.credentials import credential_manager
+        
+        data = request.get_json()
+        portal = data.get('portal')
+        email = data.get('email')
+        password = data.get('password')
+        
+        # Validar
+        if not all([portal, email, password]):
+            return jsonify({
+                'success': False,
+                'error': 'Faltan datos requeridos'
+            }), 400
+        
+        # Guardar
+        success = credential_manager.save_credentials(portal, email, password)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Credenciales guardadas para {portal}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Error guardando credenciales'
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/credenciales/listar', methods=['GET'])
+def listar_credenciales():
+    """Listar portales configurados"""
+    try:
+        from utils.credentials import credential_manager
+        
+        portales = credential_manager.list_portals()
+        
+        return jsonify({
+            'success': True,
+            'portales': portales
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/credenciales/eliminar', methods=['POST'])
+def eliminar_credenciales():
+    """Eliminar credenciales de un portal"""
+    try:
+        from utils.credentials import credential_manager
+        
+        data = request.get_json()
+        portal = data.get('portal')
+        
+        if not portal:
+            return jsonify({
+                'success': False,
+                'error': 'Portal no especificado'
+            }), 400
+        
+        success = credential_manager.delete_credentials(portal)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Credenciales eliminadas para {portal}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Error eliminando credenciales'
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/credenciales/toggle', methods=['POST'])
+def toggle_credenciales():
+    """Habilitar/deshabilitar portal"""
+    try:
+        from utils.credentials import credential_manager
+        
+        data = request.get_json()
+        portal = data.get('portal')
+        enabled = data.get('enabled', False)
+        
+        if not portal:
+            return jsonify({
+                'success': False,
+                'error': 'Portal no especificado'
+            }), 400
+        
+        success = credential_manager.toggle_portal(portal, enabled)
+        
+        if success:
+            status = "habilitado" if enabled else "deshabilitado"
+            return jsonify({
+                'success': True,
+                'message': f'Portal {portal} {status}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Error actualizando estado'
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Manejo de error 404"""

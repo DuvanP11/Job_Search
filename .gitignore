@@ -1,12 +1,14 @@
+# Credenciales y datos sensibles
+credentials/
+.encryption_key
+*.key
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -23,10 +25,10 @@ wheels/
 .installed.cfg
 *.egg
 
-# Flask
-instance/
-.webassets-cache
-.env
+# Virtual environments
+venv/
+ENV/
+env/
 
 # IDE
 .vscode/
@@ -42,10 +44,11 @@ Thumbs.db
 # Logs
 *.log
 
-# Excel files generados
-*.xlsx
-*.xls
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Cache
-.cache/
-*.cache
+# Environment
+.env
+.env.local
