@@ -53,8 +53,18 @@ class SeleniumScraper:
             # User agent realista
             options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
             
-            # Crear driver
-            driver = webdriver.Chrome(options=options)
+            # Detectar ChromeDriver automáticamente
+            # Railway/Nixpacks lo pone en /nix/store/.../bin/chromedriver
+            import shutil
+            chromedriver_path = shutil.which('chromedriver')
+            
+            if chromedriver_path:
+                logger.info(f"✅ ChromeDriver encontrado en: {chromedriver_path}")
+                service = Service(executable_path=chromedriver_path)
+                driver = webdriver.Chrome(service=service, options=options)
+            else:
+                logger.info("✅ Usando ChromeDriver del PATH")
+                driver = webdriver.Chrome(options=options)
             
             # Ocultar webdriver
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
