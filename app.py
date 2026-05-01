@@ -27,7 +27,15 @@ resultados_cache = []
 @app.route('/')
 def index():
     """Página principal con formulario de búsqueda"""
-    return render_template('index.html')
+    from utils.auth import get_current_user
+    from flask import redirect, url_for
+    
+    # Verificar si hay sesión activa
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    return render_template('index.html', user=user)
 
 
 @app.route('/buscar', methods=['POST'])
@@ -424,6 +432,212 @@ def toggle_credenciales():
                 'success': False,
                 'error': 'Error actualizando estado'
             }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ==================== RUTAS DE AUTENTICACIÓN ====================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login de usuario"""
+    from utils.database import db
+    from utils.auth import login_user
+    from flask import session, redirect, url_for, flash, render_template
+    
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        user = db.authenticate_user(email, password)
+        
+        if user:
+            login_user(user)
+            flash(f'✅ Bienvenido {user["username"]}!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('❌ Email o contraseña incorrectos', 'error')
+    
+    return render_template('login.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Registro de nuevo usuario"""
+    from utils.database import db
+    from utils.auth import login_user, AVATARES
+    from flask import session, redirect, url_for, flash, render_template
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        avatar = request.form.get('avatar', 'cat')
+        
+        user_id = db.create_user(username, email, password, avatar)
+        
+        if user_id:
+            user = db.get_user_by_id(user_id)
+            login_user(user)
+            flash(f'✅ Cuenta creada! Bienvenido {username}!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('❌ El email o usuario ya están registrados', 'error')
+    
+    return render_template('register.html', avatares=AVATARES)
+
+
+@app.route('/logout')
+def logout():
+    """Cerrar sesión"""
+    from utils.auth import logout_user
+    from flask import redirect, url_for, flash
+    
+    logout_user()
+    flash('✅ Sesión cerrada correctamente', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/dashboard')
+def dashboard():
+    """Dashboard de usuario"""
+    from utils.auth import login_required, get_current_user
+    from flask import render_template
+    
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    return render_template('dashboard.html', user=user)
+
+
+@app.route('/user/credenciales')
+def user_credenciales():
+    """Página de credenciales privadas del usuario"""
+    from utils.auth import login_required, get_current_user
+    from utils.database import db
+    from flask import render_template
+    
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    # Obtener credenciales del usuario
+    credenciales = db.list_user_credentials(user['id'])
+    
+    return render_template('user_credentials.html', user=user, credenciales=credenciales)
+
+
+# ==================== APIS DE CREDENCIALES DE USUARIO ====================
+
+@app.route('/api/user/credenciales/guardar', methods=['POST'])
+def api_user_guardar_credencial():
+    """Guardar credencial de portal para usuario actual"""
+    from utils.auth import get_current_user
+    from utils.database import db
+    from utils.credentials import credential_manager
+    
+    user = get_current_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'No autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        portal = data.get('portal')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not all([portal, email, password]):
+            return jsonify({
+                'success': False,
+                'error': 'Faltan datos requeridos'
+            }), 400
+        
+        # Encriptar contraseña
+        password_encrypted = credential_manager.cipher.encrypt(password.encode()).decode()
+        
+        # Guardar en base de datos del usuario
+        success = db.save_user_credentials(user['id'], portal, email, password_encrypted)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Credenciales de {portal} guardadas'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Error guardando credenciales'
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/user/credenciales/listar')
+def api_user_listar_credenciales():
+    """Listar credenciales del usuario actual"""
+    from utils.auth import get_current_user
+    from utils.database import db
+    
+    user = get_current_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'No autenticado'}), 401
+    
+    try:
+        credenciales = db.list_user_credentials(user['id'])
+        
+        return jsonify({
+            'success': True,
+            'credenciales': credenciales
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/user/credenciales/eliminar', methods=['POST'])
+def api_user_eliminar_credencial():
+    """Eliminar credencial de portal para usuario actual"""
+    from utils.auth import get_current_user
+    from utils.database import db
+    
+    user = get_current_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'No autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        portal = data.get('portal')
+        
+        if not portal:
+            return jsonify({
+                'success': False,
+                'error': 'Portal no especificado'
+            }), 400
+        
+        success = db.delete_user_credentials(user['id'], portal)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Credenciales de {portal} eliminadas'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Credencial no encontrada'
+            }), 404
     
     except Exception as e:
         return jsonify({

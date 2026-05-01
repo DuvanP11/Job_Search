@@ -31,18 +31,34 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link active" href="/">
-                            <i class="fas fa-home"></i> Inicio
+                            <i class="fas fa-search"></i> Buscar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/user/credenciales">
+                            <i class="fas fa-key"></i> Mis Credenciales
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/credenciales">
-                            <i class="fas fa-key"></i> Credenciales
+                            <i class="fas fa-share-alt"></i> Compartidas
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#estadisticas">
-                            <i class="fas fa-chart-bar"></i> Estadísticas
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <span style="font-size: 1.5em;">{{ user.avatar if user.avatar else '🐱' }}</span>
+                            {{ user.username }}
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>

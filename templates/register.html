@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Portal de Empleos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+        }
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo-icon {
+            font-size: 60px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .avatar-selector {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+        }
+        .avatar-option {
+            font-size: 32px;
+            cursor: pointer;
+            text-align: center;
+            padding: 8px;
+            border-radius: 10px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .avatar-option:hover {
+            transform: scale(1.2);
+            background: #f0f0f0;
+        }
+        .avatar-option.selected {
+            border: 2px solid #667eea;
+            background: #f0f0ff;
+            transform: scale(1.1);
+        }
+        .btn-register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="register-card">
+        <div class="logo-icon">
+            🎉
+        </div>
+        <h2 class="text-center mb-4">Crear Cuenta</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+            <div class="mb-3">
+                <label class="form-label">Usuario</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" name="username" placeholder="usuario123" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" class="form-control" name="email" placeholder="tu@email.com" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" name="password" placeholder="********" required minlength="6">
+                </div>
+                <small class="text-muted">Mínimo 6 caracteres</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Elige tu Avatar 🎨</label>
+                <div class="avatar-selector" id="avatarSelector">
+                    {% for avatar_key, avatar_emoji in avatars.items() %}
+                        <div class="avatar-option" data-avatar="{{ avatar_key }}" title="{{ avatar_key }}">
+                            {{ avatar_emoji }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="avatar" id="selectedAvatar" value="cat" required>
+                <div class="text-center mt-2">
+                    <span class="badge bg-primary">Seleccionado: <span id="selectedAvatarDisplay">🐱</span></span>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-register w-100 mb-3">
+                <i class="fas fa-user-plus"></i> Crear Cuenta
+            </button>
+            
+            <div class="text-center">
+                <p class="mb-0">¿Ya tienes cuenta? 
+                    <a href="{{ url_for('login') }}" class="text-decoration-none">Inicia sesión aquí</a>
+                </p>
+            </div>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Selector de avatares
+        const avatarOptions = document.querySelectorAll('.avatar-option');
+        const selectedAvatarInput = document.getElementById('selectedAvatar');
+        const selectedAvatarDisplay = document.getElementById('selectedAvatarDisplay');
+        
+        // Marcar primer avatar como seleccionado por defecto
+        avatarOptions[0].classList.add('selected');
+        
+        avatarOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remover selección anterior
+                avatarOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Marcar nueva selección
+                this.classList.add('selected');
+                
+                // Actualizar input hidden
+                const avatarKey = this.getAttribute('data-avatar');
+                const avatarEmoji = this.textContent.trim();
+                
+                selectedAvatarInput.value = avatarKey;
+                selectedAvatarDisplay.textContent = avatarEmoji;
+            });
+        });
+    </script>
+</body>
+</html>
