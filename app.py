@@ -8,7 +8,7 @@ Fecha: 2025
 Aplicación web Flask para búsqueda automatizada de ofertas laborales
 """
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, flash
 from datetime import datetime, timedelta
 import pandas as pd
 import io
@@ -28,7 +28,6 @@ resultados_cache = []
 def index():
     """Página principal con formulario de búsqueda"""
     from utils.auth import get_current_user
-    from flask import redirect, url_for
     
     # Verificar si hay sesión activa
     user = get_current_user()
@@ -447,7 +446,6 @@ def login():
     """Login de usuario"""
     from utils.database import db
     from utils.auth import login_user
-    from flask import session, redirect, url_for, flash, render_template
     
     if request.method == 'POST':
         email = request.form.get('email')
@@ -470,7 +468,6 @@ def register():
     """Registro de nuevo usuario"""
     from utils.database import db
     from utils.auth import login_user, AVATARES
-    from flask import session, redirect, url_for, flash, render_template
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -495,7 +492,6 @@ def register():
 def logout():
     """Cerrar sesión"""
     from utils.auth import logout_user
-    from flask import redirect, url_for, flash
     
     logout_user()
     flash('✅ Sesión cerrada correctamente', 'success')
@@ -505,8 +501,7 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     """Dashboard de usuario"""
-    from utils.auth import login_required, get_current_user
-    from flask import render_template
+    from utils.auth import get_current_user
     
     user = get_current_user()
     if not user:
@@ -518,9 +513,8 @@ def dashboard():
 @app.route('/user/credenciales')
 def user_credenciales():
     """Página de credenciales privadas del usuario"""
-    from utils.auth import login_required, get_current_user
+    from utils.auth import get_current_user
     from utils.database import db
-    from flask import render_template
     
     user = get_current_user()
     if not user:
