@@ -192,7 +192,7 @@ class ElEmpleoBot(SeleniumScraper):
             return False
     
     def buscar_ofertas(self, titulo, ubicacion, max_ofertas=20):
-        """Buscar ofertas en ElEmpleo"""
+        """Buscar ofertas en ElEmpleo con scroll y filtrado por relevancia"""
         try:
             logger.info(f"🔍 Buscando en {self.portal_name}: {titulo} - {ubicacion}")
             
@@ -204,21 +204,30 @@ class ElEmpleoBot(SeleniumScraper):
             
             # Construir URL de búsqueda
             from urllib.parse import quote_plus
-            query = quote_plus(f"{titulo} {ubicacion}")
-            url = f"{self.base_url}/co/ofertas-empleo/?buscar={query}"
+            query = quote_plus(titulo)  # Solo el título, sin ubicación
+            url = f"{self.base_url}/co/ofertas-empleo/?q={query}"
             
             logger.info(f"📍 URL: {url}")
             self.driver.get(url)
-            time.sleep(3)
+            time.sleep(4)
             
-            # Extraer ofertas
+            # SCROLL para cargar más ofertas
+            for _ in range(3):
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+            
+            # Extraer ofertas con MÚLTIPLES estrategias
             ofertas = []
             
-            # Estrategia: buscar cards de ofertas
+            # Estrategia 1: Selectores específicos de ElEmpleo 2025
             selectors = [
-                "div.offer-card",
-                "article.job-card",
-                "div[data-testid='job-card']",
+                "article[data-offer]",
+                "div[data-id-oferta]",
+                "a.js-o-link",
+                "div.offer-item",
+                "article.offer",
+                "div[class*='offer']",
+                "article[class*='job']",
                 "div.resultado"
             ]
             
@@ -226,77 +235,101 @@ class ElEmpleoBot(SeleniumScraper):
             for selector in selectors:
                 try:
                     elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elements:
+                    if len(elements) >= 5:  # Al menos 5 ofertas
                         offer_elements = elements
-                        logger.info(f"✅ Encontrados {len(elements)} elementos con selector: {selector}")
+                        logger.info(f"✅ {len(elements)} elementos con: {selector}")
                         break
                 except:
                     continue
             
-            # Si no encontró con selectores específicos, buscar todos los links
-            if not offer_elements:
-                logger.warning("⚠️ No se encontraron ofertas con selectores específicos, buscando links...")
-                offer_elements = self.driver.find_elements(By.CSS_SELECTOR, "a[href*='/oferta/'], a[href*='/empleo/']")
+            # Estrategia 2: Buscar por links si no funcionó
+            if len(offer_elements) < 5:
+                logger.warning("⚠️ Pocos resultados, buscando por links...")
+                offer_elements = self.driver.find_elements(By.CSS_SELECTOR, 
+                    "a[href*='/oferta/'], a[href*='/empleo/'], a[href*='vacante']")
             
-            logger.info(f"📊 Total elementos a procesar: {len(offer_elements)}")
+            logger.info(f"📊 Total elementos encontrados: {len(offer_elements)}")
+            
+            # Tomar screenshot para debugging
+            try:
+                self.driver.save_screenshot('/tmp/elempleo_debug.png')
+                logger.info("📸 Screenshot guardado en /tmp/elempleo_debug.png")
+            except:
+                pass
+            
+            # Palabras clave del título para filtrado
+            titulo_keywords = set(titulo.lower().split())
             
             # Procesar ofertas
-            for i, element in enumerate(offer_elements[:max_ofertas * 2]):  # Procesar el doble para tener margen
+            ofertas_procesadas = set()  # Evitar duplicados
+            
+            for i, element in enumerate(offer_elements[:max_ofertas * 3]):
                 try:
-                    # Extraer título
-                    titulo_elem = None
-                    for tag in ['h2', 'h3', 'a']:
-                        try:
-                            titulo_elem = element.find_element(By.TAG_NAME, tag)
-                            if titulo_elem and len(titulo_elem.text.strip()) > 10:
-                                break
-                        except:
-                            continue
+                    # Extraer TEXTO COMPLETO del elemento
+                    texto_completo = element.text.strip()
                     
-                    if not titulo_elem:
+                    if not texto_completo or len(texto_completo) < 10:
                         continue
                     
-                    titulo_oferta = titulo_elem.text.strip()
+                    # Extraer título (primera línea o texto más prominente)
+                    lineas = texto_completo.split('\n')
+                    titulo_oferta = lineas[0].strip() if lineas else texto_completo[:100]
+                    
+                    # FILTRO DE RELEVANCIA
+                    titulo_lower = titulo_oferta.lower()
+                    palabras_titulo = set(titulo_lower.split())
+                    coincidencias = len(titulo_keywords & palabras_titulo)
+                    
+                    # Si no hay coincidencias, verificar si al menos contiene alguna palabra clave
+                    if coincidencias == 0:
+                        tiene_keyword = any(kw in titulo_lower for kw in titulo_keywords)
+                        if not tiene_keyword:
+                            logger.debug(f"❌ Rechazada (no relevante): {titulo_oferta[:50]}")
+                            continue
                     
                     # Extraer link
                     try:
-                        link = element.find_element(By.TAG_NAME, 'a').get_attribute('href')
+                        link = element.get_attribute('href')
+                        if not link:
+                            link = element.find_element(By.TAG_NAME, 'a').get_attribute('href')
                     except:
-                        link = element.get_attribute('href') if element.tag_name == 'a' else ''
-                    
-                    if not link:
                         continue
                     
-                    # Extraer empresa
-                    empresa = "No especificada"
-                    try:
-                        empresa_elem = element.find_element(By.CSS_SELECTOR, "span.company, p.company, div.company")
-                        empresa = empresa_elem.text.strip()
-                    except:
-                        pass
+                    if not link or link in ofertas_procesadas:
+                        continue
                     
-                    # Extraer ubicación
+                    ofertas_procesadas.add(link)
+                    
+                    # Extraer empresa (segunda línea típicamente)
+                    empresa = lineas[1].strip() if len(lineas) > 1 else "No especificada"
+                    
+                    # Extraer ubicación (buscar en texto)
                     ubicacion_oferta = ubicacion
-                    try:
-                        loc_elem = element.find_element(By.CSS_SELECTOR, "span.location, p.location, div.location")
-                        ubicacion_oferta = loc_elem.text.strip()
-                    except:
-                        pass
+                    for linea in lineas:
+                        if any(city in linea.lower() for city in ['bogotá', 'medellín', 'cali', 'barranquilla']):
+                            ubicacion_oferta = linea.strip()
+                            break
+                    
+                    # Calcular score basado en relevancia
+                    score = 50 + (coincidencias * 10)
+                    if titulo.lower() in titulo_lower:
+                        score += 20
                     
                     # Crear oferta
                     oferta_data = {
                         'titulo': titulo_oferta[:150],
-                        'empresa': empresa,
+                        'empresa': empresa[:100],
                         'ubicacion': ubicacion_oferta,
                         'link': link,
                         'portal': self.portal_name,
                         'fecha_publicacion': datetime.now().strftime('%Y-%m-%d'),
                         'fecha_busqueda': datetime.now().strftime('%Y-%m-%d'),
-                        'descripcion': '',
-                        'score': 50
+                        'descripcion': texto_completo[:300],
+                        'score': min(score, 100)
                     }
                     
                     ofertas.append(oferta_data)
+                    logger.info(f"✅ Agregada (score={score}): {titulo_oferta[:50]}")
                     
                     # Limitar cantidad
                     if len(ofertas) >= max_ofertas:
@@ -306,9 +339,14 @@ class ElEmpleoBot(SeleniumScraper):
                     logger.debug(f"Error procesando elemento {i}: {str(e)}")
                     continue
             
-            logger.info(f"✅ {len(ofertas)} ofertas encontradas en {self.portal_name}")
+            # Ordenar por score (más relevantes primero)
+            ofertas.sort(key=lambda x: x['score'], reverse=True)
+            
+            logger.info(f"✅ {len(ofertas)} ofertas relevantes encontradas en {self.portal_name}")
             return ofertas
         
         except Exception as e:
             logger.error(f"❌ Error buscando en {self.portal_name}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return []
