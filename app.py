@@ -501,13 +501,33 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     """Dashboard de usuario"""
-    from utils.auth import get_current_user
+    from utils.auth import get_current_user, get_avatar_emoji
+    from utils.database import db
+    from datetime import datetime
     
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
     
-    return render_template('dashboard.html', user=user)
+    # Obtener datos para dashboard
+    credentials = db.list_user_credentials(user['id'])
+    credentials_count = len(credentials)
+    
+    # Fecha de creación
+    created_at = datetime.fromisoformat(user['created_at'])
+    member_since = created_at.strftime('%b %Y')
+    
+    # Avatar emoji
+    avatar_emoji = get_avatar_emoji(user.get('avatar', 'cat'))
+    
+    return render_template(
+        'dashboard.html',
+        user=user,
+        avatar_emoji=avatar_emoji,
+        credentials_count=credentials_count,
+        searches_count=0,  # Por ahora 0
+        member_since=member_since
+    )
 
 
 @app.route('/user/credenciales')

@@ -1,1 +1,11 @@
-{}
+{
+  "1": {
+    "id": "1",
+    "username": "test_user",
+    "email": "test@test.com",
+    "password_hash": "c5d1cefcc388177a046eec3b41c36da3$f0cc6dff2030784e53dbd21f63efc50d1a99086f00f5de80b37c0555ecf1452d",
+    "avatar": "cat",
+    "created_at": "2026-05-01T22:34:48.513737",
+    "last_login": null
+  }
+}
