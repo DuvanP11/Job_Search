@@ -503,31 +503,41 @@ def dashboard():
     """Dashboard de usuario"""
     from utils.auth import get_current_user, get_avatar_emoji
     from utils.database import db
-    from datetime import datetime
     
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
     
-    # Obtener datos para dashboard
-    credentials = db.list_user_credentials(user['id'])
-    credentials_count = len(credentials)
-    
-    # Fecha de creación
-    created_at = datetime.fromisoformat(user['created_at'])
-    member_since = created_at.strftime('%b %Y')
-    
-    # Avatar emoji
-    avatar_emoji = get_avatar_emoji(user.get('avatar', 'cat'))
-    
-    return render_template(
-        'dashboard.html',
-        user=user,
-        avatar_emoji=avatar_emoji,
-        credentials_count=credentials_count,
-        searches_count=0,  # Por ahora 0
-        member_since=member_since
-    )
+    try:
+        # Obtener datos para dashboard
+        credentials = db.list_user_credentials(user['id'])
+        credentials_count = len(credentials)
+        
+        # Fecha de creación
+        created_at_str = user.get('created_at', '')
+        if created_at_str:
+            created_at = datetime.fromisoformat(created_at_str)
+            member_since = created_at.strftime('%b %Y')
+        else:
+            member_since = 'Hoy'
+        
+        # Avatar emoji
+        avatar_key = user.get('avatar', 'cat')
+        avatar_emoji = get_avatar_emoji(avatar_key)
+        
+        return render_template(
+            'dashboard.html',
+            user=user,
+            avatar_emoji=avatar_emoji,
+            credentials_count=credentials_count,
+            searches_count=0,
+            member_since=member_since
+        )
+    except Exception as e:
+        # Log error y mostrar página de error
+        print(f"Error en dashboard: {str(e)}")
+        flash(f'Error cargando dashboard: {str(e)}', 'error')
+        return redirect(url_for('login'))
 
 
 @app.route('/user/credenciales')
