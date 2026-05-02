@@ -1,82 +1,39 @@
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Gradiente principal -->
-    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
     </linearGradient>
-    
-    <!-- Filtro de sombra -->
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-      <feOffset dx="0" dy="2" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
-      </feComponentTransfer>
-      <feMerge> 
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/> 
-      </feMerge>
-    </filter>
   </defs>
   
-  <!-- Círculo de fondo con gradiente -->
-  <circle cx="100" cy="100" r="90" fill="url(#mainGradient)" filter="url(#shadow)">
-    <animate attributeName="r" values="90;92;90" dur="2s" repeatCount="indefinite"/>
-  </circle>
+  <!-- Círculo de fondo -->
+  <circle cx="100" cy="100" r="90" fill="url(#grad1)"/>
   
-  <!-- Círculo interior para profundidad -->
-  <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
-  
-  <!-- Maletín (trabajo) -->
-  <g transform="translate(70, 80)">
-    <rect x="5" y="15" width="50" height="35" rx="3" fill="#ffffff" opacity="0.95"/>
-    <rect x="5" y="15" width="50" height="5" fill="rgba(255,255,255,0.8)"/>
-    <path d="M 20 15 Q 30 5 40 15" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.95"/>
-    <rect x="27" y="25" width="6" height="15" fill="rgba(102,126,234,0.3)" rx="1"/>
-    <circle cx="30" cy="32" r="2" fill="url(#mainGradient)"/>
-    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-2; 0,0" dur="2s" repeatCount="indefinite"/>
+  <!-- Maletín (trabajo) - centrado -->
+  <g opacity="0.95">
+    <rect x="65" y="100" width="45" height="32" rx="2" fill="#ffffff"/>
+    <rect x="65" y="100" width="45" height="4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M 75 100 Q 87.5 92 100 100" stroke="#ffffff" stroke-width="2.5" fill="none"/>
+    <rect x="85" y="110" width="5" height="12" fill="rgba(102,126,234,0.2)" rx="0.5"/>
+    <circle cx="87.5" cy="116" r="1.5" fill="#667eea"/>
   </g>
   
-  <!-- Lupa (búsqueda) -->
-  <g transform="translate(105, 95)">
-    <circle cx="0" cy="0" r="20" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.95"/>
-    <circle cx="0" cy="0" r="15" fill="rgba(255,255,255,0.1)"/>
-    <line x1="14" y1="14" x2="28" y2="28" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.95"/>
-    <circle cx="-5" cy="-5" r="5" fill="#ffffff" opacity="0.4">
-      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2s" repeatCount="indefinite"/>
-    </circle>
-    <animateTransform attributeName="transform" type="rotate" values="0 0 0; 5 0 0; 0 0 0; -5 0 0; 0 0 0" dur="4s" repeatCount="indefinite"/>
+  <!-- Lupa (búsqueda) - derecha -->
+  <g opacity="0.95">
+    <circle cx="125" cy="95" r="16" fill="none" stroke="#ffffff" stroke-width="3.5"/>
+    <circle cx="125" cy="95" r="12" fill="rgba(255,255,255,0.05)"/>
+    <line x1="136" y1="106" x2="146" y2="116" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="121" cy="91" r="4" fill="#ffffff" opacity="0.3"/>
   </g>
   
-  <!-- Persona (ayuda personalizada) -->
-  <g transform="translate(100, 65)">
-    <circle cx="0" cy="0" r="8" fill="#ffffff" opacity="0.9"/>
-    <path d="M -6 8 L -8 18 M 0 8 L 0 18 M 6 8 L 8 18" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
-    <animateTransform attributeName="transform" type="scale" values="1;1.05;1" dur="2s" repeatCount="indefinite"/>
+  <!-- Persona (ayuda personalizada) - arriba -->
+  <g opacity="0.9">
+    <circle cx="100" cy="75" r="6.5" fill="#ffffff"/>
+    <path d="M 94 82 L 92 90 M 100 82 L 100 90 M 106 82 L 108 90" 
+          stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
   </g>
   
-  <!-- Partículas flotantes -->
-  <circle cx="60" cy="60" r="2" fill="#ffffff" opacity="0.6">
-    <animate attributeName="cy" values="60;50;60" dur="3s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="140" cy="140" r="2" fill="#ffffff" opacity="0.6">
-    <animate attributeName="cy" values="140;150;140" dur="3.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3.5s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="50" cy="130" r="2" fill="#ffffff" opacity="0.6">
-    <animate attributeName="cx" values="50;45;50" dur="2.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="150" cy="70" r="2" fill="#ffffff" opacity="0.6">
-    <animate attributeName="cx" values="150;155;150" dur="2.8s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.8s" repeatCount="indefinite"/>
-  </circle>
-  
-  <!-- Anillo de pulso -->
-  <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2">
-    <animate attributeName="r" values="85;95;85" dur="2s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
-  </circle>
+  <!-- Líneas decorativas sutiles -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
 </svg>
