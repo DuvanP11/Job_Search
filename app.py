@@ -822,7 +822,7 @@ def reset_password(email):
             return redirect(url_for('login'))
         
         # Actualizar contraseña
-        user['password'] = hash_password(new_password)
+        user['password_hash'] = hash_password(new_password)
         db.update_user(user['id'], user)
         
         # Eliminar código usado
@@ -837,7 +837,7 @@ def reset_password(email):
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
     """Editar perfil de usuario"""
-    from utils.auth import get_current_user, get_avatar_emoji, AVATARS
+    from utils.auth import get_current_user, get_avatar_emoji, AVATARES
     from utils.database import db
     
     user = get_current_user()
@@ -875,7 +875,7 @@ def edit_profile():
         'edit_profile.html',
         user=user,
         avatar_emoji=avatar_emoji,
-        avatars=list(AVATARS.items())
+        avatars=list(AVATARES.items())
     )
 
 
