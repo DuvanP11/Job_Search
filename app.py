@@ -15,6 +15,7 @@ import io
 import os
 import random
 import string
+import json
 from utils.scraper import BuscadorEmpleos
 
 app = Flask(__name__)
@@ -920,6 +921,89 @@ def debug_storage():
     }
     
     return jsonify(info)
+
+
+@app.route('/admin/reset-all', methods=['GET', 'POST'])
+def admin_reset_all():
+    """TEMPORAL: Resetear toda la base de datos - SOLO DESARROLLO"""
+    import os
+    from datetime import datetime
+    
+    if request.method == 'POST':
+        password = request.form.get('admin_password')
+        
+        # Password temporal de seguridad
+        if password != 'reset2025':
+            return jsonify({'error': 'Password incorrecto'}), 403
+        
+        try:
+            # Backup antes de borrar
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_dir = 'data/backups'
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Copiar archivos actuales
+            if os.path.exists('data/users.json'):
+                import shutil
+                shutil.copy('data/users.json', f'{backup_dir}/users_{timestamp}.json')
+            
+            if os.path.exists('data/user_credentials.json'):
+                import shutil
+                shutil.copy('data/user_credentials.json', f'{backup_dir}/credentials_{timestamp}.json')
+            
+            # Resetear archivos
+            with open('data/users.json', 'w') as f:
+                json.dump({}, f)
+            
+            with open('data/user_credentials.json', 'w') as f:
+                json.dump({}, f)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Base de datos reseteada',
+                'backup': f'Backup guardado en {backup_dir}',
+                'timestamp': timestamp
+            })
+        
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    # GET - mostrar formulario
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Reset Base de Datos</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-danger">
+        <div class="container mt-5">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h3>⚠️ RESETEAR BASE DE DATOS</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>ADVERTENCIA:</strong> Esto borrará TODOS los usuarios y credenciales.
+                        Se creará un backup antes de borrar.
+                    </div>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Password de Admin:</label>
+                            <input type="password" class="form-control" name="admin_password" required>
+                            <small class="text-muted">Hint: reset2025</small>
+                        </div>
+                        <button type="submit" class="btn btn-danger">
+                            🗑️ Resetear TODO
+                        </button>
+                        <a href="/" class="btn btn-secondary">Cancelar</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
 
 
 @app.errorhandler(404)
