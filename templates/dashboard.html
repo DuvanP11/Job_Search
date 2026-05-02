@@ -257,9 +257,9 @@
                 <div class="bot-message">
                     <div class="message-avatar">🤖</div>
                     <div class="message-content">
-                        <p><strong>¡Hola! Soy tu asistente de CV</strong> 👋</p>
-                        <p style="font-size: 13px; margin: 8px 0;">Te ayudo a optimizar tu CV para ATS y mejorar tus oportunidades laborales.</p>
-                        <p style="font-size: 13px; margin: 8px 0 0 0;">📎 <strong>Sube tu CV</strong> (PDF o DOCX) para empezar</p>
+                        <p style="margin: 0 0 10px 0;"><strong>¡Hola! 👋 Soy tu asistente de CV</strong></p>
+                        <p style="margin: 0; font-size: 13px;">Optimiza tu CV para ATS y mejora tus oportunidades.</p>
+                        <p style="margin: 10px 0 0 0; font-size: 13px;">📎 <strong>Sube tu CV</strong> (PDF/DOCX)</p>
                     </div>
                 </div>
             </div>
@@ -415,7 +415,7 @@
 
         /* Mensajes */
         .cv-bot-messages {
-            padding: 20px 15px 15px 15px;
+            padding: 25px 15px 15px 15px;
             overflow-y: scroll !important;
             overflow-x: hidden;
             background: #f8f9fa;
@@ -621,7 +621,10 @@
                     botButton.classList.add('modal-open');
                     cvBotInput.focus();
                     // Scroll al inicio para ver mensaje de bienvenida
-                    cvBotMessages.scrollTop = 0;
+                    // Usar setTimeout para asegurar que el DOM esté renderizado
+                    setTimeout(() => {
+                        cvBotMessages.scrollTop = 0;
+                    }, 50);
                 } else {
                     botButton.classList.remove('modal-open');
                 }
