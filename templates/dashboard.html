@@ -8,20 +8,88 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Animación del avatar */
         .avatar-large {
             font-size: 80px;
-            animation: bounce 2s infinite;
+            animation: wiggle 3s ease-in-out infinite;
+            position: relative;
+            display: inline-block;
         }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg) translateY(-5px); }
+            50% { transform: rotate(5deg) translateY(-3px); }
+            75% { transform: rotate(-3deg) translateY(-5px); }
         }
+        
+        /* Burbuja de mensaje */
+        .speech-bubble {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            background: white;
+            color: #667eea;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: bubbleAppear 0.4s ease-out forwards;
+            z-index: 10;
+        }
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid white;
+        }
+        
+        @keyframes bubbleAppear {
+            0% {
+                transform: translateX(-50%) scale(0);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) scale(1.1);
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .bubble-fade-out {
+            animation: bubbleFadeOut 0.3s ease-out forwards;
+        }
+        
+        @keyframes bubbleFadeOut {
+            to {
+                transform: translateX(-50%) scale(0);
+                opacity: 0;
+            }
+        }
+        
         .welcome-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
+        }
+        
+        .avatar-container {
+            position: relative;
+            display: inline-block;
         }
     </style>
 </head>
@@ -49,7 +117,10 @@
         <div class="welcome-card">
             <div class="row align-items-center">
                 <div class="col-md-2 text-center">
-                    <div class="avatar-large">{{ avatar_emoji }}</div>
+                    <div class="avatar-container">
+                        <div class="speech-bubble" id="welcomeBubble"></div>
+                        <div class="avatar-large">{{ avatar_emoji }}</div>
+                    </div>
                 </div>
                 <div class="col-md-10">
                     <h2>¡Bienvenido, {{ user.username }}! 👋</h2>
@@ -125,5 +196,31 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Mensajes aleatorios para la burbuja
+        const welcomeMessages = [
+            '¡Bienvenido!',
+            '¡Qué bueno tenerte de vuelta!',
+            '¡Hola de nuevo!',
+            '¡Listo para buscar trabajo!',
+            '¡Hoy es un gran día!',
+            '¡Vamos a encontrar tu trabajo ideal!'
+        ];
+        
+        // Mostrar burbuja al cargar
+        window.addEventListener('DOMContentLoaded', function() {
+            const bubble = document.getElementById('welcomeBubble');
+            
+            // Mensaje aleatorio
+            const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+            bubble.textContent = randomMessage;
+            
+            // Ocultar después de 4 segundos
+            setTimeout(function() {
+                bubble.classList.add('bubble-fade-out');
+            }, 4000);
+        });
+    </script>
 </body>
 </html>
