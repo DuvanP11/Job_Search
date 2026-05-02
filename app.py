@@ -33,6 +33,26 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 días
 app.config['SESSION_COOKIE_NAME'] = 'job_search_session'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Renovar sesión en cada request
 
+# LOGGING DE VOLUME AL INICIO
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Verificar volume al inicio
+data_path = os.path.abspath('data')
+logger.info(f"🔍 DATA PATH: {data_path}")
+logger.info(f"🔍 CWD: {os.getcwd()}")
+logger.info(f"🔍 DATA EXISTS: {os.path.exists('data')}")
+if os.path.exists('data'):
+    logger.info(f"🔍 DATA FILES: {os.listdir('data')}")
+    users_file = 'data/users.json'
+    if os.path.exists(users_file):
+        size = os.path.getsize(users_file)
+        logger.info(f"🔍 USERS FILE SIZE: {size} bytes")
+        with open(users_file, 'r') as f:
+            content = f.read()
+            logger.info(f"🔍 USERS CONTENT: {content[:200]}")
+
 # Variables globales para caché de resultados
 ultima_busqueda = None
 resultados_cache = []
