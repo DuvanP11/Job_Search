@@ -1046,7 +1046,13 @@ def admin_reset_all():
 @app.route('/api/cv-bot/chat', methods=['POST'])
 def cv_bot_chat():
     """Endpoint para chat con el bot de CV"""
-    from utils.cv_bot import get_cv_bot
+    try:
+        from utils.cv_bot import get_cv_bot
+    except ImportError as e:
+        logger.error(f"Error importando cv_bot: {str(e)}")
+        return jsonify({
+            'response': f'❌ Error: Módulo cv_bot no disponible. {str(e)}'
+        })
     
     try:
         data = request.get_json()
@@ -1055,22 +1061,20 @@ def cv_bot_chat():
         if not message:
             return jsonify({'error': 'Mensaje vacío'}), 400
         
+        logger.info(f"Chat recibido: {message}")
+        
         # Obtener instancia del bot
         bot = get_cv_bot()
         
-        # Verificar si Ollama está corriendo
-        if not bot.check_ollama_status():
-            return jsonify({
-                'response': '⚠️ Ollama no está corriendo. Por favor inicia Ollama en tu máquina local.<br><br>Comando: <code>ollama serve</code>'
-            })
-        
-        # Generar respuesta
+        # Generar respuesta (el método chat() ya tiene fallback automático)
         response = bot.chat(message)
+        
+        logger.info(f"Respuesta generada: {response[:100]}...")
         
         return jsonify({'response': response})
     
     except Exception as e:
-        logger.error(f"Error en cv-bot chat: {str(e)}")
+        logger.error(f"Error en cv-bot chat: {str(e)}", exc_info=True)
         return jsonify({
             'response': f'Lo siento, ocurrió un error: {str(e)}'
         })

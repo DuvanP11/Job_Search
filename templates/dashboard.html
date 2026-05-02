@@ -257,18 +257,9 @@
                 <div class="bot-message">
                     <div class="message-avatar">🤖</div>
                     <div class="message-content">
-                        <p>¡Hola! Soy tu asistente de CV. 👋</p>
-                        <p>Puedo ayudarte a:</p>
-                        <ul>
-                            <li>✅ Analizar compatibilidad con ATS</li>
-                            <li>✅ Detectar palabras clave</li>
-                            <li>✅ Sugerir mejoras de formato</li>
-                            <li>✅ Dar consejos de optimización</li>
-                        </ul>
-                        <p><strong>Sube tu CV para empezar</strong> (PDF o DOCX)</p>
-                        <p style="font-size: 12px; opacity: 0.8;">
-                            💡 <em>Análisis automático sin necesidad de configuración</em>
-                        </p>
+                        <p><strong>¡Hola! Soy tu asistente de CV</strong> 👋</p>
+                        <p style="font-size: 13px; margin: 8px 0;">Te ayudo a optimizar tu CV para ATS y mejorar tus oportunidades laborales.</p>
+                        <p style="font-size: 13px; margin: 8px 0 0 0;">📎 <strong>Sube tu CV</strong> (PDF o DOCX) para empezar</p>
                     </div>
                 </div>
             </div>
@@ -353,16 +344,17 @@
             position: fixed;
             bottom: 105px;
             right: 20px;
-            width: 400px;
-            height: 600px;
+            width: 380px;
+            height: 550px;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             z-index: 1050;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             animation: slideUp 0.3s ease-out;
+            border: 2px solid #667eea;
         }
 
         @keyframes slideUp {
@@ -424,15 +416,34 @@
         /* Mensajes */
         .cv-bot-messages {
             flex: 1;
-            padding: 20px;
+            padding: 15px;
             overflow-y: auto;
             background: #f8f9fa;
         }
 
+        /* Scroll bar visible y bonita */
+        .cv-bot-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .cv-bot-messages::-webkit-scrollbar-track {
+            background: #e9ecef;
+            border-radius: 10px;
+        }
+
+        .cv-bot-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .cv-bot-messages::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
         .bot-message, .user-message {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 8px;
+            margin-bottom: 12px;
             animation: slideIn 0.3s ease;
         }
 
@@ -452,16 +463,18 @@
         }
 
         .message-avatar {
-            font-size: 24px;
-            min-width: 32px;
+            font-size: 20px;
+            min-width: 28px;
         }
 
         .message-content {
             background: white;
-            padding: 12px 15px;
-            border-radius: 12px;
-            max-width: 70%;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            padding: 10px 12px;
+            border-radius: 15px;
+            max-width: 75%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         .user-message .message-content {
