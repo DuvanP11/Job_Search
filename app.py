@@ -786,7 +786,6 @@ def reset_password(email):
     """Restablecer contraseña con código"""
     if request.method == 'POST':
         from utils.database import db
-        from utils.auth import hash_password
         
         code = request.form.get('code')
         new_password = request.form.get('new_password')
@@ -822,7 +821,7 @@ def reset_password(email):
             return redirect(url_for('login'))
         
         # Actualizar contraseña
-        user['password_hash'] = hash_password(new_password)
+        user['password_hash'] = db.hash_password(new_password)
         db.update_user(user['id'], user)
         
         # Eliminar código usado
