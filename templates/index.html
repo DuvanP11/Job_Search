@@ -141,21 +141,66 @@ Analista de Datos</textarea>
                                 <small class="text-muted">Usa el buscador arriba o escribe directamente</small>
                             </div>
                             
+                            <!-- Modalidad de Trabajo -->
                             <div class="col-md-6 mb-3">
-                                <label for="ubicaciones" class="form-label">
-                                    <i class="fas fa-map-marker-alt"></i> Ubicaciones *
+                                <label for="modalidad" class="form-label">
+                                    <i class="fas fa-laptop-house"></i> Modalidad de Trabajo *
                                 </label>
-                                <textarea 
-                                    class="form-control" 
-                                    id="ubicaciones" 
-                                    rows="3" 
-                                    placeholder="Ej: Bogotá, Medellín, Remoto (una por línea)"
-                                    required
-                                >Bogotá
-Medellín
-Remoto</textarea>
-                                <small class="text-muted">Escribe una ubicación por línea</small>
+                                <select class="form-select" id="modalidad" required>
+                                    <option value="presencial" selected>Presencial</option>
+                                    <option value="hibrido">Híbrido</option>
+                                    <option value="remoto">Remoto</option>
+                                </select>
+                                <small class="text-muted">Selecciona cómo prefieres trabajar</small>
                             </div>
+                        </div>
+                        
+                        <!-- Fila de País y Ciudad -->
+                        <div class="row mb-4" id="fila-ubicacion">
+                            <div class="col-md-6 mb-3">
+                                <label for="pais" class="form-label">
+                                    <i class="fas fa-globe"></i> País *
+                                </label>
+                                <select class="form-select" id="pais" required>
+                                    <option value="">Selecciona un país...</option>
+                                    <optgroup label="Latinoamérica">
+                                        <option value="Colombia" selected>Colombia</option>
+                                        <option value="México">México</option>
+                                        <option value="Argentina">Argentina</option>
+                                        <option value="Chile">Chile</option>
+                                        <option value="Perú">Perú</option>
+                                        <option value="Brasil">Brasil</option>
+                                    </optgroup>
+                                    <optgroup label="Norteamérica">
+                                        <option value="Estados Unidos">Estados Unidos</option>
+                                        <option value="Canadá">Canadá</option>
+                                    </optgroup>
+                                    <optgroup label="Europa">
+                                        <option value="España">España</option>
+                                        <option value="Reino Unido">Reino Unido</option>
+                                        <option value="Francia">Francia</option>
+                                        <option value="Alemania">Alemania</option>
+                                    </optgroup>
+                                </select>
+                                <small class="text-muted">Selecciona el país donde buscas empleo</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3" id="campo-ciudad">
+                                <label for="ciudad" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i> Ciudad *
+                                </label>
+                                <select class="form-select" id="ciudad" required>
+                                    <option value="">Primero selecciona un país...</option>
+                                </select>
+                                <small class="text-muted">Selecciona la ciudad específica</small>
+                            </div>
+                            
+                            <!-- Campo oculto que mantiene las ubicaciones para compatibilidad -->
+                            <textarea 
+                                class="form-control d-none" 
+                                id="ubicaciones" 
+                                required
+                            >Bogotá</textarea>
                         </div>
 
                         <!-- Sección 2: Filtros Económicos -->
@@ -629,6 +674,133 @@ remoto</textarea>
                 }
             })
             .catch(err => console.log('Error cargando roles:', err));
+        
+        // ==================== FILTROS DE UBICACIÓN ====================
+        
+        const modalidadSelect = document.getElementById('modalidad');
+        const paisSelect = document.getElementById('pais');
+        const ciudadSelect = document.getElementById('ciudad');
+        const campoCiudad = document.getElementById('campo-ciudad');
+        const ubicacionesTextarea = document.getElementById('ubicaciones');
+        
+        // Función para actualizar visibilidad de campos según modalidad
+        function actualizarCamposPorModalidad() {
+            const modalidad = modalidadSelect.value;
+            
+            if (modalidad === 'remoto') {
+                // Remoto: ocultar campo ciudad
+                campoCiudad.style.display = 'none';
+                ciudadSelect.removeAttribute('required');
+                actualizarUbicaciones();
+            } else {
+                // Presencial/Híbrido: mostrar campo ciudad
+                campoCiudad.style.display = 'block';
+                ciudadSelect.setAttribute('required', 'required');
+                actualizarUbicaciones();
+            }
+        }
+        
+        // Función para actualizar el textarea de ubicaciones según selección
+        function actualizarUbicaciones() {
+            const modalidad = modalidadSelect.value;
+            const pais = paisSelect.value;
+            const ciudad = ciudadSelect.value;
+            
+            let ubicaciones = [];
+            
+            if (modalidad === 'remoto') {
+                ubicaciones.push('Remoto');
+                if (pais) {
+                    ubicaciones.push(`Remoto - ${pais}`);
+                }
+            } else {
+                // Presencial o Híbrido
+                if (ciudad) {
+                    ubicaciones.push(ciudad);
+                }
+            }
+            
+            ubicacionesTextarea.value = ubicaciones.join('\n');
+        }
+        
+        // Función para cargar ciudades de un país
+        async function cargarCiudades(pais) {
+            if (!pais) {
+                ciudadSelect.innerHTML = '<option value="">Primero selecciona un país...</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/ubicaciones/ciudades/${encodeURIComponent(pais)}`);
+                const data = await response.json();
+                
+                if (data.success && data.ciudades) {
+                    ciudadSelect.innerHTML = '<option value="">Selecciona una ciudad...</option>';
+                    
+                    data.ciudades.forEach(ciudad => {
+                        const option = document.createElement('option');
+                        option.value = ciudad;
+                        option.textContent = ciudad;
+                        ciudadSelect.appendChild(option);
+                    });
+                    
+                    // Si es Colombia, seleccionar Bogotá por defecto
+                    if (pais === 'Colombia') {
+                        ciudadSelect.value = 'Bogotá';
+                        actualizarUbicaciones();
+                    }
+                }
+            } catch (error) {
+                console.log('Error cargando ciudades:', error);
+                ciudadSelect.innerHTML = '<option value="">Error cargando ciudades</option>';
+            }
+        }
+        
+        // Función para cargar países desde API
+        async function cargarPaises() {
+            try {
+                const response = await fetch('/api/ubicaciones/paises');
+                const data = await response.json();
+                
+                if (data.success && data.paises) {
+                    paisSelect.innerHTML = '<option value="">Selecciona un país...</option>';
+                    
+                    // Agregar países por región
+                    for (const [region, paises] of Object.entries(data.paises)) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = region;
+                        
+                        paises.forEach(pais => {
+                            const option = document.createElement('option');
+                            option.value = pais;
+                            option.textContent = pais;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        paisSelect.appendChild(optgroup);
+                    }
+                    
+                    // Seleccionar Colombia por defecto
+                    paisSelect.value = 'Colombia';
+                    
+                    // Cargar ciudades de Colombia
+                    await cargarCiudades('Colombia');
+                }
+            } catch (error) {
+                console.log('Error cargando países:', error);
+            }
+        }
+        
+        // Event listeners
+        modalidadSelect.addEventListener('change', actualizarCamposPorModalidad);
+        paisSelect.addEventListener('change', function() {
+            cargarCiudades(this.value);
+        });
+        ciudadSelect.addEventListener('change', actualizarUbicaciones);
+        
+        // Inicializar
+        cargarPaises();
+        actualizarCamposPorModalidad();
     });
     </script>
     

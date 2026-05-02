@@ -146,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .map(u => u.trim())
             .filter(u => u.length > 0);
         
-        // Obtener modalidades seleccionadas
-        const modalidades = [];
-        if (document.getElementById('mod_remoto').checked) modalidades.push('remoto');
-        if (document.getElementById('mod_hibrido').checked) modalidades.push('híbrido');
-        if (document.getElementById('mod_presencial').checked) modalidades.push('presencial');
+        // Obtener modalidad seleccionada
+        const modalidad = document.getElementById('modalidad').value;
+        
+        // Obtener país seleccionado
+        const pais = document.getElementById('pais').value || 'Colombia';
         
         // Obtener keywords
         const keywords_incluir = document.getElementById('keywords_incluir').value
@@ -171,12 +171,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return {
             titulos: cargos,
             ubicaciones: ubicaciones,
-            pais: 'Colombia',
+            pais: pais,
+            modalidad: modalidad,
             salario_minimo: parseInt(document.getElementById('salario_minimo').value) || 0,
             tipo_contrato: document.getElementById('tipo_contrato').value,
             escolaridad: document.getElementById('escolaridad').value,
             nivel_ingles: document.getElementById('nivel_ingles').value,
-            modalidades: modalidades,
             experiencia_minima: parseInt(document.getElementById('experiencia_min').value) || 0,
             experiencia_maxima: parseInt(document.getElementById('experiencia_max').value) || 15,
             fecha_desde: document.getElementById('fecha_desde').value || null,
