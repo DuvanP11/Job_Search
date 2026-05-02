@@ -771,8 +771,8 @@ class BuscadorEmpleos:
         # Calcular score
         oferta_data['score'] = self.calcular_score(oferta_data)
         
-        # Agregar a la lista
-        self.agregar_oferta_con_filtros(oferta_data)
+        # Agregar a la lista (FIX: antes llamaba recursivamente)
+        self.ofertas_encontradas.append(oferta_data)
         return True
     
     def filtrar_por_fechas(self, fecha_desde=None, fecha_hasta=None):
