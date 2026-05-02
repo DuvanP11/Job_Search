@@ -1128,9 +1128,16 @@ def cv_bot_upload():
         # Analizar CV
         analysis = bot.analyze_cv_ats()
         
-        message = f'✅ CV cargado correctamente: <strong>{filename}</strong><br><br>'
-        message += f'📄 Longitud del texto: {len(cv_text)} caracteres<br><br>'
-        message += 'Analizando con IA...'
+        # Mensaje según modo de análisis
+        if analysis.get('mode') == 'basic':
+            message = f'✅ CV cargado y analizado: <strong>{filename}</strong><br><br>'
+            message += f'📄 Longitud: {len(cv_text)} caracteres<br><br>'
+            message += '⚠️ <em>Usando análisis básico (Ollama no disponible desde Railway)</em><br>'
+            message += '💡 <small>Para análisis con IA, usa la app localmente</small>'
+        else:
+            message = f'✅ CV cargado correctamente: <strong>{filename}</strong><br><br>'
+            message += f'📄 Longitud del texto: {len(cv_text)} caracteres<br><br>'
+            message += '🤖 Analizado con IA (Ollama)'
         
         return jsonify({
             'message': message,
