@@ -30,15 +30,15 @@
         
         /* Animación de la pata saludando */
         .wolf-paw {
-            animation: wavePaw 1.5s ease-in-out infinite;
-            transform-origin: 31px 50px; /* Centro del hombro */
+            animation: wavePaw 1.2s ease-in-out infinite;
+            transform-origin: 33px 60px; /* Centro del hombro */
         }
         
         @keyframes wavePaw {
             0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(45deg); }  /* ARRIBA ↑ */
-            50% { transform: rotate(20deg); }
-            75% { transform: rotate(45deg); }  /* ARRIBA ↑ */
+            25% { transform: rotate(15deg); }   /* Derecha */
+            50% { transform: rotate(-5deg); }   /* Izquierda */
+            75% { transform: rotate(15deg); }   /* Derecha */
         }
         
         /* Burbuja de mensaje */
@@ -177,15 +177,22 @@
                                 
                                 <!-- Pata delantera derecha (LA QUE SALUDA) -->
                                 <g class="wolf-paw">
-                                    <!-- Pata arriba para saludo -->
-                                    <rect x="25" y="50" width="12" height="30" rx="6" fill="#4B5563" filter="url(#shadow)"/>
-                                    <!-- Hombro/unión -->
-                                    <circle cx="31" cy="50" r="9" fill="url(#bodyGradient)"/>
-                                    <!-- Manita -->
-                                    <ellipse cx="31" cy="78" rx="7" ry="5" fill="#374151"/>
+                                    <!-- Brazo (parte superior) -->
+                                    <rect x="28" y="60" width="10" height="18" rx="5" fill="#4B5563" filter="url(#shadow)"/>
+                                    <!-- Hombro -->
+                                    <circle cx="33" cy="60" r="8" fill="url(#bodyGradient)"/>
+                                    
+                                    <!-- Antebrazo (doblado hacia arriba) -->
+                                    <rect x="15" y="30" width="10" height="22" rx="5" fill="#4B5563" filter="url(#shadow)" transform="rotate(-10 20 40)"/>
+                                    <!-- Codo -->
+                                    <circle cx="28" cy="78" r="6" fill="url(#bodyGradient)"/>
+                                    
+                                    <!-- Manita arriba saludando -->
+                                    <ellipse cx="20" cy="32" rx="6" ry="7" fill="#374151" filter="url(#shadow)"/>
                                     <!-- Deditos -->
-                                    <circle cx="28" cy="80" r="2.5" fill="#374151"/>
-                                    <circle cx="34" cy="80" r="2.5" fill="#374151"/>
+                                    <circle cx="17" cy="28" r="2" fill="#374151"/>
+                                    <circle cx="23" cy="28" r="2" fill="#374151"/>
+                                    <circle cx="20" cy="26" r="2" fill="#374151"/>
                                 </g>
                                 
                                 <!-- Pata delantera izquierda -->
