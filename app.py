@@ -601,7 +601,7 @@ def dashboard():
 @app.route('/user/credenciales')
 def user_credenciales():
     """Página de credenciales privadas del usuario"""
-    from utils.auth import get_current_user
+    from utils.auth import get_current_user, get_avatar_emoji
     from utils.database import db
     
     user = get_current_user()
@@ -611,7 +611,10 @@ def user_credenciales():
     # Obtener credenciales del usuario
     credenciales = db.list_user_credentials(user['id'])
     
-    return render_template('user_credentials.html', user=user, credenciales=credenciales)
+    # Avatar emoji
+    avatar_emoji = get_avatar_emoji(user.get('avatar', 'cat'))
+    
+    return render_template('user_credentials.html', user=user, credenciales=credenciales, avatar_emoji=avatar_emoji)
 
 
 # ==================== APIS DE CREDENCIALES DE USUARIO ====================
