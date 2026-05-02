@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import io
 import os
+import random
+import string
 from utils.scraper import BuscadorEmpleos
 
 app = Flask(__name__)
@@ -33,6 +35,10 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Renovar sesión en cada req
 # Variables globales para caché de resultados
 ultima_busqueda = None
 resultados_cache = []
+
+# Códigos de recuperación temporal (en memoria)
+# En producción usar Redis o base de datos
+recovery_codes = {}
 
 
 @app.route('/')
@@ -743,6 +749,134 @@ def api_user_eliminar_credencial():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Recuperar contraseña - Enviar código"""
+    if request.method == 'POST':
+        from utils.database import db
+        
+        email = request.form.get('email')
+        user = db.get_user_by_email(email)
+        
+        if not user:
+            flash('No existe una cuenta con ese email', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Generar código de 6 dígitos
+        code = ''.join(random.choices(string.digits, k=6))
+        
+        # Guardar código con expiración de 15 minutos
+        recovery_codes[email] = {
+            'code': code,
+            'expires_at': datetime.now() + timedelta(minutes=15)
+        }
+        
+        # En producción, enviar por email
+        # Por ahora, mostrar el código en la pantalla
+        flash(f'Tu código de recuperación es: {code} (válido por 15 minutos)', 'info')
+        return redirect(url_for('reset_password', email=email))
+    
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<email>', methods=['GET', 'POST'])
+def reset_password(email):
+    """Restablecer contraseña con código"""
+    if request.method == 'POST':
+        from utils.database import db
+        from utils.auth import hash_password
+        
+        code = request.form.get('code')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validar que las contraseñas coincidan
+        if new_password != confirm_password:
+            flash('Las contraseñas no coinciden', 'error')
+            return redirect(url_for('reset_password', email=email))
+        
+        # Validar código
+        if email not in recovery_codes:
+            flash('Código expirado o inválido', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        recovery_data = recovery_codes[email]
+        
+        # Verificar expiración
+        if datetime.now() > recovery_data['expires_at']:
+            del recovery_codes[email]
+            flash('El código ha expirado. Solicita uno nuevo', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Verificar código
+        if code != recovery_data['code']:
+            flash('Código incorrecto', 'error')
+            return redirect(url_for('reset_password', email=email))
+        
+        # Actualizar contraseña
+        user = db.get_user_by_email(email)
+        if not user:
+            flash('Usuario no encontrado', 'error')
+            return redirect(url_for('login'))
+        
+        # Actualizar contraseña
+        user['password'] = hash_password(new_password)
+        db.update_user(user['id'], user)
+        
+        # Eliminar código usado
+        del recovery_codes[email]
+        
+        flash('Contraseña actualizada exitosamente', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', email=email)
+
+
+@app.route('/edit-profile', methods=['GET', 'POST'])
+def edit_profile():
+    """Editar perfil de usuario"""
+    from utils.auth import get_current_user, get_avatar_emoji, AVATARS
+    from utils.database import db
+    
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        avatar = request.form.get('avatar', user.get('avatar', 'cat'))
+        nombre = request.form.get('nombre', '')
+        apellido = request.form.get('apellido', '')
+        edad = request.form.get('edad', '')
+        nacionalidad = request.form.get('nacionalidad', '')
+        
+        # Actualizar usuario
+        user['avatar'] = avatar
+        user['nombre'] = nombre
+        user['apellido'] = apellido
+        user['edad'] = int(edad) if edad else None
+        user['nacionalidad'] = nacionalidad
+        
+        # Guardar cambios
+        db.update_user(user['id'], user)
+        
+        # Actualizar sesión
+        session['avatar'] = avatar
+        
+        flash('Perfil actualizado exitosamente', 'success')
+        return redirect(url_for('dashboard'))
+    
+    # GET - mostrar formulario
+    avatar_emoji = get_avatar_emoji(user.get('avatar', 'cat'))
+    
+    return render_template(
+        'edit_profile.html',
+        user=user,
+        avatar_emoji=avatar_emoji,
+        avatars=list(AVATARS.items())
+    )
 
 
 @app.errorhandler(404)

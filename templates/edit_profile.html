@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil - Portal de Empleos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                🏢 Portal de Empleos
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    {{ avatar_emoji }} {{ user.username }}
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-user-edit text-primary"></i> Editar Perfil</h2>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Formulario de Perfil -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-id-card"></i> Información Personal</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('edit_profile') }}">
+                            <!-- Avatar -->
+                            <div class="mb-4 text-center">
+                                <label class="form-label d-block"><strong>Avatar</strong></label>
+                                <div class="mb-3" style="font-size: 80px;">
+                                    <span id="avatar-preview">{{ avatar_emoji }}</span>
+                                </div>
+                                <select class="form-select w-auto mx-auto" name="avatar" id="avatar-select">
+                                    {% for key, emoji in avatars %}
+                                        <option value="{{ key }}" {% if user.avatar == key %}selected{% endif %}>{{ emoji }} {{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="row">
+                                <!-- Nombre -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" name="nombre" value="{{ user.get('nombre', '') }}" placeholder="Tu nombre">
+                                </div>
+
+                                <!-- Apellido -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Apellido</label>
+                                    <input type="text" class="form-control" name="apellido" value="{{ user.get('apellido', '') }}" placeholder="Tu apellido">
+                                </div>
+
+                                <!-- Email (readonly) -->
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" value="{{ user.email }}" readonly>
+                                    <small class="text-muted">El email no se puede cambiar</small>
+                                </div>
+
+                                <!-- Edad -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Edad</label>
+                                    <input type="number" class="form-control" name="edad" value="{{ user.get('edad', '') }}" min="18" max="100" placeholder="Tu edad">
+                                </div>
+
+                                <!-- Nacionalidad -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nacionalidad</label>
+                                    <select class="form-select" name="nacionalidad">
+                                        <option value="">Selecciona...</option>
+                                        <option value="Colombia" {% if user.get('nacionalidad') == 'Colombia' %}selected{% endif %}>🇨🇴 Colombia</option>
+                                        <option value="México" {% if user.get('nacionalidad') == 'México' %}selected{% endif %}>🇲🇽 México</option>
+                                        <option value="Argentina" {% if user.get('nacionalidad') == 'Argentina' %}selected{% endif %}>🇦🇷 Argentina</option>
+                                        <option value="Chile" {% if user.get('nacionalidad') == 'Chile' %}selected{% endif %}>🇨🇱 Chile</option>
+                                        <option value="Perú" {% if user.get('nacionalidad') == 'Perú' %}selected{% endif %}>🇵🇪 Perú</option>
+                                        <option value="Venezuela" {% if user.get('nacionalidad') == 'Venezuela' %}selected{% endif %}>🇻🇪 Venezuela</option>
+                                        <option value="Ecuador" {% if user.get('nacionalidad') == 'Ecuador' %}selected{% endif %}>🇪🇨 Ecuador</option>
+                                        <option value="España" {% if user.get('nacionalidad') == 'España' %}selected{% endif %}>🇪🇸 España</option>
+                                        <option value="Estados Unidos" {% if user.get('nacionalidad') == 'Estados Unidos' %}selected{% endif %}>🇺🇸 Estados Unidos</option>
+                                        <option value="Otra" {% if user.get('nacionalidad') == 'Otra' %}selected{% endif %}>🌍 Otra</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="text-end mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> Guardar Cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Preview de avatar al cambiar
+        document.getElementById('avatar-select').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const emoji = selectedOption.text.split(' ')[0];  // Obtener solo el emoji
+            document.getElementById('avatar-preview').textContent = emoji;
+        });
+    </script>
+</body>
+</html>
