@@ -203,11 +203,13 @@ Responde en formato JSON con esta estructura:
         if not self.check_ollama_status():
             return self.chat_basic(user_message)
         
+        # Construir prompt sin backslash en f-string
+        cv_section = f"CV del usuario:\n{self.cv_text}\n\n" if self.cv_text else ""
+        context_section = f"{context}\n\n" if context else ""
+        
         prompt = f"""Eres un asistente experto en optimización de CVs y reclutamiento.
 
-{"CV del usuario:\n" + self.cv_text + "\n\n" if self.cv_text else ""}
-{context + "\n\n" if context else ""}
-Usuario: {user_message}
+{cv_section}{context_section}Usuario: {user_message}
 
 Proporciona consejos específicos, prácticos y accionables. Sé conciso pero útil."""
         
