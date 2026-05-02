@@ -157,6 +157,26 @@ class Database:
         
         return None
     
+    def update_user(self, user_id, user_data):
+        """Actualizar datos de usuario"""
+        try:
+            users = self._load_users()
+            
+            if str(user_id) not in users:
+                logger.error(f"❌ Usuario no encontrado: {user_id}")
+                return False
+            
+            # Actualizar usuario
+            users[str(user_id)] = user_data
+            self._save_users(users)
+            
+            logger.info(f"✅ Usuario actualizado: {user_id}")
+            return True
+        
+        except Exception as e:
+            logger.error(f"❌ Error actualizando usuario: {str(e)}")
+            return False
+    
     # ==================== MÉTODOS DE CREDENCIALES ====================
     
     def save_user_credentials(self, user_id, portal, email, password_encrypted):
