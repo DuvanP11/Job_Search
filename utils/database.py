@@ -541,5 +541,27 @@ class Database:
             return False
 
 
+# ==================== INSTANCIA GLOBAL HÍBRIDA ====================
+
+def get_database():
+    """Obtener instancia de base de datos (PostgreSQL o JSON fallback)"""
+    database_url = os.getenv('DATABASE_URL')
+    
+    if database_url and POSTGRESQL_AVAILABLE:
+        try:
+            logger.info("🔍 DATABASE_URL detectada - usando PostgreSQL")
+            return DatabasePostgreSQL()
+        except Exception as e:
+            logger.error(f"❌ Error conectando a PostgreSQL: {e}")
+            logger.info("⚠️ Fallback a JSON")
+            return Database()
+    else:
+        if not database_url:
+            logger.info("⚠️ DATABASE_URL no encontrada - usando JSON")
+        else:
+            logger.info("⚠️ PostgreSQL no disponible - usando JSON")
+        return Database()
+
+
 # Instancia global
-db = Database()
+db = get_database()

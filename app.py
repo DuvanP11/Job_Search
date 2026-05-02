@@ -57,6 +57,19 @@ if os.path.exists('data'):
 ultima_busqueda = None
 resultados_cache = []
 
+# LOGGING DE TIPO DE BASE DE DATOS
+logger.info("=" * 60)
+logger.info("🔍 VERIFICANDO CONFIGURACIÓN DE BASE DE DATOS")
+logger.info("=" * 60)
+database_url = os.getenv('DATABASE_URL')
+logger.info(f"🔍 DATABASE_URL presente: {bool(database_url)}")
+if database_url:
+    # Mostrar solo primeros caracteres por seguridad
+    logger.info(f"🔍 DATABASE_URL (primeros 30 chars): {database_url[:30]}...")
+else:
+    logger.info("⚠️ DATABASE_URL NO ENCONTRADA - Usará JSON")
+logger.info("=" * 60)
+
 # Códigos de recuperación temporal (en memoria)
 # En producción usar Redis o base de datos
 recovery_codes = {}
