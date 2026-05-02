@@ -139,52 +139,102 @@
                         <div class="speech-bubble" id="welcomeBubble"></div>
                         <div class="avatar-large">
                             <svg class="wolf-svg" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-                                <!-- Cola -->
-                                <ellipse cx="95" cy="95" rx="18" ry="25" fill="#8B7D6B" transform="rotate(25 95 95)"/>
+                                <defs>
+                                    <!-- Degradado para el cuerpo -->
+                                    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#6B7280;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#4B5563;stop-opacity:1" />
+                                    </linearGradient>
+                                    
+                                    <!-- Degradado para la cabeza -->
+                                    <linearGradient id="headGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#6B7280;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#4B5563;stop-opacity:1" />
+                                    </linearGradient>
+                                    
+                                    <!-- Sombra suave -->
+                                    <filter id="shadow">
+                                        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                                    </filter>
+                                </defs>
                                 
-                                <!-- Cuerpo -->
-                                <ellipse cx="60" cy="80" rx="28" ry="35" fill="#A0937D"/>
+                                <!-- Cola con movimiento sutil -->
+                                <ellipse cx="95" cy="95" rx="18" ry="25" fill="#4B5563" transform="rotate(25 95 95)" filter="url(#shadow)"/>
+                                
+                                <!-- Cuerpo principal -->
+                                <ellipse cx="60" cy="80" rx="28" ry="35" fill="url(#bodyGradient)" filter="url(#shadow)"/>
+                                
+                                <!-- Pecho blanco -->
+                                <ellipse cx="60" cy="85" rx="18" ry="25" fill="#F3F4F6" opacity="0.9"/>
                                 
                                 <!-- Pata trasera derecha -->
-                                <rect x="50" y="100" width="12" height="30" rx="6" fill="#8B7D6B"/>
+                                <rect x="50" y="100" width="12" height="30" rx="6" fill="#4B5563" filter="url(#shadow)"/>
+                                <ellipse cx="56" cy="128" rx="7" ry="4" fill="#374151"/>
                                 
                                 <!-- Pata trasera izquierda -->
-                                <rect x="68" y="100" width="12" height="30" rx="6" fill="#8B7D6B"/>
+                                <rect x="68" y="100" width="12" height="30" rx="6" fill="#4B5563" filter="url(#shadow)"/>
+                                <ellipse cx="74" cy="128" rx="7" ry="4" fill="#374151"/>
                                 
                                 <!-- Pata delantera derecha (LA QUE SALUDA) -->
                                 <g class="wolf-paw">
-                                    <rect x="30" y="85" width="12" height="28" rx="6" fill="#8B7D6B"/>
-                                    <circle cx="36" cy="85" r="7" fill="#A0937D"/>
+                                    <rect x="30" y="85" width="12" height="28" rx="6" fill="#4B5563" filter="url(#shadow)"/>
+                                    <circle cx="36" cy="85" r="8" fill="url(#bodyGradient)"/>
+                                    <ellipse cx="36" cy="111" rx="7" ry="4" fill="#374151"/>
                                 </g>
                                 
                                 <!-- Pata delantera izquierda -->
-                                <rect x="48" y="95" width="12" height="28" rx="6" fill="#8B7D6B"/>
+                                <rect x="48" y="95" width="12" height="28" rx="6" fill="#4B5563" filter="url(#shadow)"/>
+                                <ellipse cx="54" cy="121" rx="7" ry="4" fill="#374151"/>
                                 
                                 <!-- Cuello -->
-                                <ellipse cx="60" cy="55" rx="20" ry="18" fill="#A0937D"/>
+                                <ellipse cx="60" cy="55" rx="20" ry="18" fill="url(#bodyGradient)"/>
+                                <ellipse cx="60" cy="58" rx="14" ry="12" fill="#F3F4F6" opacity="0.8"/>
                                 
                                 <!-- Cabeza -->
-                                <circle cx="60" cy="35" r="25" fill="#A0937D"/>
+                                <circle cx="60" cy="35" r="25" fill="url(#headGradient)" filter="url(#shadow)"/>
                                 
-                                <!-- Orejas -->
-                                <path d="M 45 20 L 40 5 L 50 15 Z" fill="#8B7D6B"/>
-                                <path d="M 75 20 L 80 5 L 70 15 Z" fill="#8B7D6B"/>
+                                <!-- Orejas con detalle -->
+                                <g>
+                                    <path d="M 45 20 L 40 5 L 50 15 Z" fill="#4B5563" filter="url(#shadow)"/>
+                                    <path d="M 46 18 L 43 8 L 49 16 Z" fill="#D1D5DB"/>
+                                </g>
+                                <g>
+                                    <path d="M 75 20 L 80 5 L 70 15 Z" fill="#4B5563" filter="url(#shadow)"/>
+                                    <path d="M 74 18 L 77 8 L 71 16 Z" fill="#D1D5DB"/>
+                                </g>
                                 
-                                <!-- Hocico -->
-                                <ellipse cx="60" cy="42" rx="12" ry="10" fill="#D4C4B0"/>
-                                <ellipse cx="60" cy="45" rx="8" ry="6" fill="#F5E6D3"/>
+                                <!-- Hocico con más detalle -->
+                                <ellipse cx="60" cy="42" rx="14" ry="11" fill="#E5E7EB"/>
+                                <ellipse cx="60" cy="45" rx="10" ry="8" fill="#F9FAFB"/>
                                 
                                 <!-- Nariz -->
-                                <ellipse cx="60" cy="48" rx="4" ry="3" fill="#2C2C2C"/>
+                                <ellipse cx="60" cy="48" rx="5" ry="4" fill="#1F2937"/>
+                                <ellipse cx="61" cy="47" rx="2" ry="1.5" fill="#4B5563" opacity="0.5"/>
                                 
-                                <!-- Ojos -->
-                                <circle cx="52" cy="30" r="3" fill="#2C2C2C"/>
-                                <circle cx="68" cy="30" r="3" fill="#2C2C2C"/>
-                                <circle cx="53" cy="29" r="1.5" fill="white"/>
-                                <circle cx="69" cy="29" r="1.5" fill="white"/>
+                                <!-- Ojos expresivos -->
+                                <g>
+                                    <ellipse cx="52" cy="30" rx="5" ry="6" fill="white"/>
+                                    <circle cx="52" cy="31" r="3.5" fill="#1F2937"/>
+                                    <circle cx="53" cy="29.5" r="1.8" fill="white"/>
+                                </g>
+                                <g>
+                                    <ellipse cx="68" cy="30" rx="5" ry="6" fill="white"/>
+                                    <circle cx="68" cy="31" r="3.5" fill="#1F2937"/>
+                                    <circle cx="69" cy="29.5" r="1.8" fill="white"/>
+                                </g>
+                                
+                                <!-- Cejas expresivas -->
+                                <path d="M 47 24 Q 52 22 57 24" stroke="#374151" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                <path d="M 63 24 Q 68 22 73 24" stroke="#374151" stroke-width="2" fill="none" stroke-linecap="round"/>
                                 
                                 <!-- Boca sonriente -->
-                                <path d="M 55 50 Q 60 52 65 50" stroke="#2C2C2C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                                <path d="M 54 51 Q 60 54 66 51" stroke="#374151" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                
+                                <!-- Bigotes -->
+                                <line x1="40" y1="44" x2="30" y2="43" stroke="#374151" stroke-width="1" opacity="0.6"/>
+                                <line x1="40" y1="47" x2="28" y2="48" stroke="#374151" stroke-width="1" opacity="0.6"/>
+                                <line x1="80" y1="44" x2="90" y2="43" stroke="#374151" stroke-width="1" opacity="0.6"/>
+                                <line x1="80" y1="47" x2="92" y2="48" stroke="#374151" stroke-width="1" opacity="0.6"/>
                             </svg>
                         </div>
                     </div>
