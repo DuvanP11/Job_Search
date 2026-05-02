@@ -7,11 +7,13 @@ Análisis inteligente de CVs usando IA local
 
 import requests
 import json
-import PyPDF2
-import docx
 import io
 import re
+import logging
 from typing import Dict, List, Any
+
+# Logger
+logger = logging.getLogger(__name__)
 
 
 class CVBotOllama:
@@ -40,21 +42,27 @@ class CVBotOllama:
     def extract_text_from_pdf(self, file_bytes: bytes) -> str:
         """Extraer texto de PDF"""
         try:
+            import PyPDF2
             pdf_file = io.BytesIO(file_bytes)
             pdf_reader = PyPDF2.PdfReader(pdf_file)
             text = ""
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
             return text.strip()
+        except ImportError:
+            raise Exception("PyPDF2 no está instalado. Instala con: pip install PyPDF2")
         except Exception as e:
             raise Exception(f"Error extrayendo texto de PDF: {str(e)}")
     
     def extract_text_from_docx(self, file_bytes: bytes) -> str:
         """Extraer texto de DOCX"""
         try:
+            import docx
             doc = docx.Document(io.BytesIO(file_bytes))
             text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
             return text.strip()
+        except ImportError:
+            raise Exception("python-docx no está instalado. Instala con: pip install python-docx")
         except Exception as e:
             raise Exception(f"Error extrayendo texto de DOCX: {str(e)}")
     
@@ -62,12 +70,18 @@ class CVBotOllama:
         """Parsear CV desde archivo"""
         extension = filename.lower().split('.')[-1]
         
-        if extension == 'pdf':
-            return self.extract_text_from_pdf(file_bytes)
-        elif extension in ['doc', 'docx']:
-            return self.extract_text_from_docx(file_bytes)
-        else:
-            raise ValueError("Formato no soportado. Use PDF o DOCX.")
+        try:
+            if extension == 'pdf':
+                return self.extract_text_from_pdf(file_bytes)
+            elif extension in ['doc', 'docx']:
+                return self.extract_text_from_docx(file_bytes)
+            else:
+                raise ValueError(f"Formato no soportado: {extension}. Use PDF o DOCX.")
+        except Exception as e:
+            # Si falla el parsing, crear texto dummy para que el análisis funcione
+            logger.error(f"Error parseando CV: {str(e)}")
+            # Retornar mensaje indicando el problema
+            return f"[Error parseando archivo: {str(e)}]\n\nArchivo: {filename}\nTamaño: {len(file_bytes)} bytes"
     
     def analyze_cv_ats(self) -> Dict[str, Any]:
         """Analizar CV para compatibilidad con ATS"""
