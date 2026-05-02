@@ -10,17 +10,35 @@
     <style>
         /* Animación del avatar */
         .avatar-large {
-            font-size: 80px;
-            animation: wiggle 3s ease-in-out infinite;
             position: relative;
             display: inline-block;
+            width: 120px;
+            height: 140px;
         }
         
-        @keyframes wiggle {
+        /* Lobo SVG */
+        .wolf-svg {
+            width: 100%;
+            height: 100%;
+            animation: wolfBounce 3s ease-in-out infinite;
+        }
+        
+        @keyframes wolfBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Animación de la pata saludando */
+        .wolf-paw {
+            animation: wavePaw 2s ease-in-out infinite;
+            transform-origin: 30% 70%;
+        }
+        
+        @keyframes wavePaw {
             0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-5deg) translateY(-5px); }
-            50% { transform: rotate(5deg) translateY(-3px); }
-            75% { transform: rotate(-3deg) translateY(-5px); }
+            25% { transform: rotate(-30deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-30deg); }
         }
         
         /* Burbuja de mensaje */
@@ -119,7 +137,56 @@
                 <div class="col-md-2 text-center">
                     <div class="avatar-container">
                         <div class="speech-bubble" id="welcomeBubble"></div>
-                        <div class="avatar-large">{{ avatar_emoji }}</div>
+                        <div class="avatar-large">
+                            <svg class="wolf-svg" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Cola -->
+                                <ellipse cx="95" cy="95" rx="18" ry="25" fill="#8B7D6B" transform="rotate(25 95 95)"/>
+                                
+                                <!-- Cuerpo -->
+                                <ellipse cx="60" cy="80" rx="28" ry="35" fill="#A0937D"/>
+                                
+                                <!-- Pata trasera derecha -->
+                                <rect x="50" y="100" width="12" height="30" rx="6" fill="#8B7D6B"/>
+                                
+                                <!-- Pata trasera izquierda -->
+                                <rect x="68" y="100" width="12" height="30" rx="6" fill="#8B7D6B"/>
+                                
+                                <!-- Pata delantera derecha (LA QUE SALUDA) -->
+                                <g class="wolf-paw">
+                                    <rect x="30" y="85" width="12" height="28" rx="6" fill="#8B7D6B"/>
+                                    <circle cx="36" cy="85" r="7" fill="#A0937D"/>
+                                </g>
+                                
+                                <!-- Pata delantera izquierda -->
+                                <rect x="48" y="95" width="12" height="28" rx="6" fill="#8B7D6B"/>
+                                
+                                <!-- Cuello -->
+                                <ellipse cx="60" cy="55" rx="20" ry="18" fill="#A0937D"/>
+                                
+                                <!-- Cabeza -->
+                                <circle cx="60" cy="35" r="25" fill="#A0937D"/>
+                                
+                                <!-- Orejas -->
+                                <path d="M 45 20 L 40 5 L 50 15 Z" fill="#8B7D6B"/>
+                                <path d="M 75 20 L 80 5 L 70 15 Z" fill="#8B7D6B"/>
+                                
+                                <!-- Hocico -->
+                                <ellipse cx="60" cy="42" rx="12" ry="10" fill="#D4C4B0"/>
+                                <ellipse cx="60" cy="45" rx="8" ry="6" fill="#F5E6D3"/>
+                                
+                                <!-- Nariz -->
+                                <ellipse cx="60" cy="48" rx="4" ry="3" fill="#2C2C2C"/>
+                                
+                                <!-- Ojos -->
+                                <circle cx="52" cy="30" r="3" fill="#2C2C2C"/>
+                                <circle cx="68" cy="30" r="3" fill="#2C2C2C"/>
+                                <circle cx="53" cy="29" r="1.5" fill="white"/>
+                                <circle cx="69" cy="29" r="1.5" fill="white"/>
+                                
+                                <!-- Boca sonriente -->
+                                <path d="M 55 50 Q 60 52 65 50" stroke="#2C2C2C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-10">
