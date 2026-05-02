@@ -1,0 +1,2 @@
+# Este archivo asegura que Git trackee el directorio data/
+# Los archivos .json se ignoran en .gitignore pero la carpeta debe existir

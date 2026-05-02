@@ -878,6 +878,50 @@ def edit_profile():
     )
 
 
+@app.route('/debug/storage')
+def debug_storage():
+    """Verificar estado del almacenamiento - SOLO PARA DEBUGGING"""
+    from utils.auth import get_current_user
+    
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    import os
+    from datetime import datetime
+    
+    data_dir = 'data'
+    users_file = os.path.join(data_dir, 'users.json')
+    credentials_file = os.path.join(data_dir, 'user_credentials.json')
+    
+    info = {
+        'timestamp': datetime.now().isoformat(),
+        'cwd': os.getcwd(),
+        'data_dir': {
+            'exists': os.path.exists(data_dir),
+            'path': os.path.abspath(data_dir),
+            'files': os.listdir(data_dir) if os.path.exists(data_dir) else []
+        },
+        'users_file': {
+            'exists': os.path.exists(users_file),
+            'path': os.path.abspath(users_file),
+            'size': os.path.getsize(users_file) if os.path.exists(users_file) else 0
+        },
+        'credentials_file': {
+            'exists': os.path.exists(credentials_file),
+            'path': os.path.abspath(credentials_file),
+            'size': os.path.getsize(credentials_file) if os.path.exists(credentials_file) else 0
+        },
+        'volume_check': {
+            'expected_mount': '/app/data',
+            'current_path': os.path.abspath(data_dir),
+            'is_volume_mounted': os.path.abspath(data_dir) == '/app/data'
+        }
+    }
+    
+    return jsonify(info)
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Manejo de error 404"""
