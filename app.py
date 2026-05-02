@@ -1112,9 +1112,29 @@ def cv_bot_upload():
         
         # Verificar si Ollama está corriendo
         if not bot.check_ollama_status():
+            # Parsear CV de todos modos
+            try:
+                cv_text = bot.parse_cv(file_bytes, filename)
+                bot.cv_text = cv_text
+                logger.info(f"CV parseado sin Ollama: {len(cv_text)} caracteres")
+            except Exception as parse_error:
+                logger.error(f"Error parseando CV: {str(parse_error)}")
+                return jsonify({
+                    'message': f'❌ Error parseando CV: {str(parse_error)}',
+                    'analysis': None
+                })
+            
+            # Hacer análisis básico automático
+            analysis = bot.analyze_cv_basic()
+            
+            message = f'✅ CV analizado: <strong>{filename}</strong><br><br>'
+            message += f'📄 Longitud: {len(cv_text)} caracteres<br><br>'
+            message += '🤖 <strong>Análisis automático completado</strong><br>'
+            message += '<small><em>Usando algoritmo inteligente (sin necesidad de Ollama)</em></small>'
+            
             return jsonify({
-                'message': '⚠️ Ollama no está corriendo. El CV fue cargado pero no puedo analizarlo sin Ollama.<br><br>Inicia Ollama con: <code>ollama serve</code>',
-                'analysis': None
+                'message': message,
+                'analysis': analysis
             })
         
         # Parsear CV
