@@ -45,14 +45,16 @@ recovery_codes = {}
 @app.route('/')
 def index():
     """Página principal con formulario de búsqueda"""
-    from utils.auth import get_current_user
+    from utils.auth import get_current_user, get_avatar_emoji
     
     # Verificar si hay sesión activa
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
     
-    return render_template('index.html', user=user)
+    avatar_emoji = get_avatar_emoji(user.get('avatar', 'cat'))
+    
+    return render_template('index.html', user=user, avatar_emoji=avatar_emoji)
 
 
 @app.route('/buscar', methods=['POST'])

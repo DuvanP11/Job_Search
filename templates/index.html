@@ -98,18 +98,14 @@
                             <i class="fas fa-key"></i> Mis Credenciales
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/credenciales">
-                            <i class="fas fa-share-alt"></i> Compartidas
-                        </a>
-                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <span style="font-size: 1.5em;">{{ user.avatar if user.avatar else '🐱' }}</span>
-                            {{ user.username }}
+                            <span style="font-size: 1.3em;">{{ avatar_emoji }}</span>
+                            <span class="ms-2">{{ user.username }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="/edit-profile"><i class="fas fa-user-edit"></i> Editar Perfil</a></li>
+                            <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
                         </ul>
