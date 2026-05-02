@@ -342,10 +342,10 @@
         /* Modal del Chat */
         .cv-bot-modal {
             position: fixed;
-            bottom: 105px;
+            bottom: 90px;
             right: 20px;
             width: 380px;
-            height: 550px;
+            height: 500px;
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -423,21 +423,24 @@
 
         /* Scroll bar visible y bonita */
         .cv-bot-messages::-webkit-scrollbar {
-            width: 8px;
+            width: 10px;
         }
 
         .cv-bot-messages::-webkit-scrollbar-track {
             background: #e9ecef;
             border-radius: 10px;
+            margin: 5px 0;
         }
 
         .cv-bot-messages::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 10px;
+            border: 2px solid #e9ecef;
         }
 
         .cv-bot-messages::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            border: 2px solid #d0d4e0;
         }
 
         .bot-message, .user-message {
@@ -501,11 +504,15 @@
 
         /* Input Area */
         .cv-bot-input-area {
-            padding: 15px;
+            padding: 12px 15px;
             background: white;
-            border-top: 1px solid #e9ecef;
+            border-top: 2px solid #e9ecef;
             display: flex;
             gap: 10px;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
         }
 
         .upload-cv-btn {
