@@ -30,15 +30,15 @@
         
         /* Animación de la pata saludando */
         .wolf-paw {
-            animation: wavePaw 2s ease-in-out infinite;
-            transform-origin: 30% 70%;
+            animation: wavePaw 1.5s ease-in-out infinite;
+            transform-origin: 31px 50px; /* Centro del hombro */
         }
         
         @keyframes wavePaw {
             0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-30deg); }
-            50% { transform: rotate(0deg); }
-            75% { transform: rotate(-30deg); }
+            25% { transform: rotate(-45deg); }
+            50% { transform: rotate(-20deg); }
+            75% { transform: rotate(-45deg); }
         }
         
         /* Burbuja de mensaje */
@@ -177,9 +177,15 @@
                                 
                                 <!-- Pata delantera derecha (LA QUE SALUDA) -->
                                 <g class="wolf-paw">
-                                    <rect x="30" y="85" width="12" height="28" rx="6" fill="#4B5563" filter="url(#shadow)"/>
-                                    <circle cx="36" cy="85" r="8" fill="url(#bodyGradient)"/>
-                                    <ellipse cx="36" cy="111" rx="7" ry="4" fill="#374151"/>
+                                    <!-- Pata arriba para saludo -->
+                                    <rect x="25" y="50" width="12" height="30" rx="6" fill="#4B5563" filter="url(#shadow)"/>
+                                    <!-- Hombro/unión -->
+                                    <circle cx="31" cy="50" r="9" fill="url(#bodyGradient)"/>
+                                    <!-- Manita -->
+                                    <ellipse cx="31" cy="78" rx="7" ry="5" fill="#374151"/>
+                                    <!-- Deditos -->
+                                    <circle cx="28" cy="80" r="2.5" fill="#374151"/>
+                                    <circle cx="34" cy="80" r="2.5" fill="#374151"/>
                                 </g>
                                 
                                 <!-- Pata delantera izquierda -->
