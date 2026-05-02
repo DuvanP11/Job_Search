@@ -314,12 +314,18 @@
 
         /* Cuando modal está abierto, mover botón más abajo */
         .cv-bot-button.modal-open {
-            bottom: calc(600px + 125px);
+            bottom: 20px;
+            right: 450px;
+            transform: scale(1.1);
+            box-shadow: 0 8px 35px rgba(255, 68, 68, 0.8);
+            border-color: #ff4444;
         }
 
         @media (max-width: 768px) {
             .cv-bot-button.modal-open {
-                bottom: calc(100% - 40px);
+                bottom: 20px;
+                right: 20px;
+                left: auto;
             }
         }
 

@@ -1079,7 +1079,14 @@ def cv_bot_chat():
 @app.route('/api/cv-bot/upload', methods=['POST'])
 def cv_bot_upload():
     """Endpoint para subir y analizar CV"""
-    from utils.cv_bot import get_cv_bot
+    try:
+        from utils.cv_bot import get_cv_bot
+    except ImportError as e:
+        logger.error(f"Error importando cv_bot: {str(e)}")
+        return jsonify({
+            'message': f'❌ Error: Faltan dependencias. {str(e)}',
+            'analysis': None
+        })
     
     try:
         if 'cv' not in request.files:
@@ -1094,6 +1101,8 @@ def cv_bot_upload():
         file_bytes = file.read()
         filename = file.filename
         
+        logger.info(f"Procesando CV: {filename}, tamaño: {len(file_bytes)} bytes")
+        
         # Obtener instancia del bot
         bot = get_cv_bot()
         
@@ -1105,8 +1114,16 @@ def cv_bot_upload():
             })
         
         # Parsear CV
-        cv_text = bot.parse_cv(file_bytes, filename)
-        bot.cv_text = cv_text
+        try:
+            cv_text = bot.parse_cv(file_bytes, filename)
+            bot.cv_text = cv_text
+            logger.info(f"CV parseado exitosamente: {len(cv_text)} caracteres")
+        except Exception as parse_error:
+            logger.error(f"Error parseando CV: {str(parse_error)}")
+            return jsonify({
+                'message': f'❌ Error parseando CV: {str(parse_error)}',
+                'analysis': None
+            })
         
         # Analizar CV
         analysis = bot.analyze_cv_ats()
@@ -1121,7 +1138,7 @@ def cv_bot_upload():
         })
     
     except Exception as e:
-        logger.error(f"Error en cv-bot upload: {str(e)}")
+        logger.error(f"Error en cv-bot upload: {str(e)}", exc_info=True)
         return jsonify({
             'message': f'❌ Error al procesar CV: {str(e)}',
             'analysis': None
