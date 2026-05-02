@@ -620,6 +620,8 @@
                 if (!isVisible) {
                     botButton.classList.add('modal-open');
                     cvBotInput.focus();
+                    // Scroll al inicio para ver mensaje de bienvenida
+                    cvBotMessages.scrollTop = 0;
                 } else {
                     botButton.classList.remove('modal-open');
                 }
