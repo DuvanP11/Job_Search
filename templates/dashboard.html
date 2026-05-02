@@ -226,5 +226,509 @@
             }, 4000);
         });
     </script>
+
+    <!-- Bot Asistente de CV -->
+    <div id="cvBotWidget">
+        <!-- Botón Flotante -->
+        <button id="cvBotButton" class="cv-bot-button" title="Asistente de CV con IA">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="white">
+                <!-- Robot icon -->
+                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2M21 9H15V22H13V16H11V22H9V9H3V7H21V9Z"/>
+                <circle cx="9.5" cy="12" r="1.5"/>
+                <circle cx="14.5" cy="12" r="1.5"/>
+            </svg>
+            <span class="bot-badge" id="botBadge" style="display: none;">1</span>
+        </button>
+
+        <!-- Chat Modal -->
+        <div id="cvBotModal" class="cv-bot-modal" style="display: none;">
+            <div class="cv-bot-header">
+                <div class="bot-header-content">
+                    <div class="bot-avatar">🤖</div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 16px;">Asistente de CV</h4>
+                        <small style="opacity: 0.8;">Powered by Ollama AI</small>
+                    </div>
+                </div>
+                <button id="closeBotModal" class="close-bot-btn">&times;</button>
+            </div>
+
+            <div id="cvBotMessages" class="cv-bot-messages">
+                <div class="bot-message">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>¡Hola! Soy tu asistente de CV con IA. 👋</p>
+                        <p>Puedo ayudarte a:</p>
+                        <ul>
+                            <li>✅ Optimizar tu CV para ATS (sistemas automáticos)</li>
+                            <li>✅ Mejorar formato y estructura</li>
+                            <li>✅ Sugerir palabras clave</li>
+                            <li>✅ Revisar gramática y claridad</li>
+                        </ul>
+                        <p><strong>Sube tu CV para empezar</strong> (PDF o DOCX)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cv-bot-input-area">
+                <input type="file" id="cvFileInput" accept=".pdf,.doc,.docx" style="display: none;">
+                <button id="uploadCvBtn" class="upload-cv-btn" title="Subir CV">
+                    📎
+                </button>
+                <input type="text" id="cvBotInput" class="cv-bot-input" placeholder="Escribe tu mensaje...">
+                <button id="sendBotMessage" class="send-bot-btn" title="Enviar">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Botón Flotante */
+        .cv-bot-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cv-bot-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .cv-bot-button:active {
+            transform: scale(0.95);
+        }
+
+        .bot-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Modal del Chat */
+        .cv-bot-modal {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .cv-bot-modal {
+                width: calc(100% - 20px);
+                height: calc(100% - 120px);
+                right: 10px;
+                bottom: 80px;
+            }
+        }
+
+        /* Header del Chat */
+        .cv-bot-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bot-header-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bot-avatar {
+            font-size: 32px;
+        }
+
+        .close-bot-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-bot-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Mensajes */
+        .cv-bot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .bot-message, .user-message {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .user-message {
+            flex-direction: row-reverse;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            font-size: 24px;
+            min-width: 32px;
+        }
+
+        .message-content {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 12px;
+            max-width: 70%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-content p {
+            margin: 0 0 8px 0;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-content ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message-content li {
+            margin: 4px 0;
+        }
+
+        /* Input Area */
+        .cv-bot-input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .upload-cv-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .upload-cv-btn:hover {
+            background: #e9ecef;
+        }
+
+        .cv-bot-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .cv-bot-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-bot-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .send-bot-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-bot-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: translateY(0);
+            }
+            30% {
+                opacity: 1;
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+
+    <script>
+        // Bot CV Widget JavaScript
+        (function() {
+            const botButton = document.getElementById('cvBotButton');
+            const botModal = document.getElementById('cvBotModal');
+            const closeBotModal = document.getElementById('closeBotModal');
+            const sendBotMessage = document.getElementById('sendBotMessage');
+            const cvBotInput = document.getElementById('cvBotInput');
+            const cvBotMessages = document.getElementById('cvBotMessages');
+            const uploadCvBtn = document.getElementById('uploadCvBtn');
+            const cvFileInput = document.getElementById('cvFileInput');
+            let currentCvFile = null;
+
+            // Toggle modal
+            botButton.addEventListener('click', function() {
+                const isVisible = botModal.style.display === 'block';
+                botModal.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) {
+                    cvBotInput.focus();
+                }
+            });
+
+            closeBotModal.addEventListener('click', function() {
+                botModal.style.display = 'none';
+            });
+
+            // Upload CV
+            uploadCvBtn.addEventListener('click', function() {
+                cvFileInput.click();
+            });
+
+            cvFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    currentCvFile = file;
+                    uploadCV(file);
+                }
+            });
+
+            // Send message
+            function sendMessage() {
+                const message = cvBotInput.value.trim();
+                if (!message) return;
+
+                addUserMessage(message);
+                cvBotInput.value = '';
+
+                // Show typing indicator
+                showTypingIndicator();
+
+                // Send to backend
+                fetch('/api/cv-bot/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        has_cv: currentCvFile !== null
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    removeTypingIndicator();
+                    addBotMessage(data.response);
+                })
+                .catch(error => {
+                    removeTypingIndicator();
+                    addBotMessage('Lo siento, hubo un error. Por favor intenta de nuevo.');
+                    console.error('Error:', error);
+                });
+            }
+
+            sendBotMessage.addEventListener('click', sendMessage);
+            cvBotInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Upload CV function
+            function uploadCV(file) {
+                const formData = new FormData();
+                formData.append('cv', file);
+
+                addUserMessage(`📄 Subiendo CV: ${file.name}`);
+                showTypingIndicator();
+
+                fetch('/api/cv-bot/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    removeTypingIndicator();
+                    addBotMessage(data.message);
+                    if (data.analysis) {
+                        addBotMessage(formatAnalysis(data.analysis));
+                    }
+                })
+                .catch(error => {
+                    removeTypingIndicator();
+                    addBotMessage('Error al subir el CV. Por favor intenta de nuevo.');
+                    console.error('Error:', error);
+                });
+            }
+
+            // Helper functions
+            function addUserMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'user-message';
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <p>${text}</p>
+                    </div>
+                    <div class="message-avatar">👤</div>
+                `;
+                cvBotMessages.appendChild(messageDiv);
+                scrollToBottom();
+            }
+
+            function addBotMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'bot-message';
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">${text}</div>
+                `;
+                cvBotMessages.appendChild(messageDiv);
+                scrollToBottom();
+            }
+
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'bot-message typing-indicator-message';
+                typingDiv.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                `;
+                cvBotMessages.appendChild(typingDiv);
+                scrollToBottom();
+            }
+
+            function removeTypingIndicator() {
+                const indicator = cvBotMessages.querySelector('.typing-indicator-message');
+                if (indicator) {
+                    indicator.remove();
+                }
+            }
+
+            function scrollToBottom() {
+                cvBotMessages.scrollTop = cvBotMessages.scrollHeight;
+            }
+
+            function formatAnalysis(analysis) {
+                let html = '<div><strong>📊 Análisis de tu CV:</strong><br><br>';
+                
+                if (analysis.ats_score) {
+                    html += `<p><strong>Puntuación ATS:</strong> ${analysis.ats_score}/100</p>`;
+                }
+                
+                if (analysis.improvements && analysis.improvements.length > 0) {
+                    html += '<p><strong>Mejoras sugeridas:</strong></p><ul>';
+                    analysis.improvements.forEach(imp => {
+                        html += `<li>${imp}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                if (analysis.keywords) {
+                    html += `<p><strong>Palabras clave detectadas:</strong> ${analysis.keywords.join(', ')}</p>`;
+                }
+                
+                html += '</div>';
+                return html;
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -12,3 +12,7 @@ cryptography==41.0.7
 # PostgreSQL
 psycopg2-binary==2.9.9
 SQLAlchemy==2.0.23
+
+# Bot CV con Ollama
+PyPDF2==3.0.1
+python-docx==1.1.0

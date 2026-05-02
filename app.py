@@ -1041,6 +1041,93 @@ def admin_reset_all():
     '''
 
 
+# ==================== ENDPOINTS DEL BOT DE CV ====================
+
+@app.route('/api/cv-bot/chat', methods=['POST'])
+def cv_bot_chat():
+    """Endpoint para chat con el bot de CV"""
+    from utils.cv_bot import get_cv_bot
+    
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        
+        if not message:
+            return jsonify({'error': 'Mensaje vacío'}), 400
+        
+        # Obtener instancia del bot
+        bot = get_cv_bot()
+        
+        # Verificar si Ollama está corriendo
+        if not bot.check_ollama_status():
+            return jsonify({
+                'response': '⚠️ Ollama no está corriendo. Por favor inicia Ollama en tu máquina local.<br><br>Comando: <code>ollama serve</code>'
+            })
+        
+        # Generar respuesta
+        response = bot.chat(message)
+        
+        return jsonify({'response': response})
+    
+    except Exception as e:
+        logger.error(f"Error en cv-bot chat: {str(e)}")
+        return jsonify({
+            'response': f'Lo siento, ocurrió un error: {str(e)}'
+        })
+
+
+@app.route('/api/cv-bot/upload', methods=['POST'])
+def cv_bot_upload():
+    """Endpoint para subir y analizar CV"""
+    from utils.cv_bot import get_cv_bot
+    
+    try:
+        if 'cv' not in request.files:
+            return jsonify({'error': 'No se encontró archivo'}), 400
+        
+        file = request.files['cv']
+        
+        if file.filename == '':
+            return jsonify({'error': 'Nombre de archivo vacío'}), 400
+        
+        # Leer archivo
+        file_bytes = file.read()
+        filename = file.filename
+        
+        # Obtener instancia del bot
+        bot = get_cv_bot()
+        
+        # Verificar si Ollama está corriendo
+        if not bot.check_ollama_status():
+            return jsonify({
+                'message': '⚠️ Ollama no está corriendo. El CV fue cargado pero no puedo analizarlo sin Ollama.<br><br>Inicia Ollama con: <code>ollama serve</code>',
+                'analysis': None
+            })
+        
+        # Parsear CV
+        cv_text = bot.parse_cv(file_bytes, filename)
+        bot.cv_text = cv_text
+        
+        # Analizar CV
+        analysis = bot.analyze_cv_ats()
+        
+        message = f'✅ CV cargado correctamente: <strong>{filename}</strong><br><br>'
+        message += f'📄 Longitud del texto: {len(cv_text)} caracteres<br><br>'
+        message += 'Analizando con IA...'
+        
+        return jsonify({
+            'message': message,
+            'analysis': analysis
+        })
+    
+    except Exception as e:
+        logger.error(f"Error en cv-bot upload: {str(e)}")
+        return jsonify({
+            'message': f'❌ Error al procesar CV: {str(e)}',
+            'analysis': None
+        })
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Manejo de error 404"""
