@@ -31,7 +31,7 @@
         /* Animación de la pata saludando */
         .wolf-paw {
             animation: wavePaw 1.2s ease-in-out infinite;
-            transform-origin: 33px 60px; /* Centro del hombro */
+            transform-origin: 33px 68px; /* Centro del hombro ajustado */
         }
         
         @keyframes wavePaw {
@@ -178,21 +178,21 @@
                                 <!-- Pata delantera derecha (LA QUE SALUDA) -->
                                 <g class="wolf-paw">
                                     <!-- Brazo (parte superior) -->
-                                    <rect x="28" y="60" width="10" height="18" rx="5" fill="#4B5563" filter="url(#shadow)"/>
+                                    <rect x="28" y="68" width="10" height="18" rx="5" fill="#4B5563" filter="url(#shadow)"/>
                                     <!-- Hombro -->
-                                    <circle cx="33" cy="60" r="8" fill="url(#bodyGradient)"/>
+                                    <circle cx="33" cy="68" r="8" fill="url(#bodyGradient)"/>
                                     
                                     <!-- Antebrazo (doblado hacia arriba) -->
-                                    <rect x="15" y="30" width="10" height="22" rx="5" fill="#4B5563" filter="url(#shadow)" transform="rotate(-10 20 40)"/>
+                                    <rect x="15" y="42" width="10" height="22" rx="5" fill="#4B5563" filter="url(#shadow)" transform="rotate(-10 20 50)"/>
                                     <!-- Codo -->
-                                    <circle cx="28" cy="78" r="6" fill="url(#bodyGradient)"/>
+                                    <circle cx="28" cy="86" r="6" fill="url(#bodyGradient)"/>
                                     
                                     <!-- Manita arriba saludando -->
-                                    <ellipse cx="20" cy="32" rx="6" ry="7" fill="#374151" filter="url(#shadow)"/>
+                                    <ellipse cx="20" cy="44" rx="6" ry="7" fill="#374151" filter="url(#shadow)"/>
                                     <!-- Deditos -->
-                                    <circle cx="17" cy="28" r="2" fill="#374151"/>
-                                    <circle cx="23" cy="28" r="2" fill="#374151"/>
-                                    <circle cx="20" cy="26" r="2" fill="#374151"/>
+                                    <circle cx="17" cy="40" r="2" fill="#374151"/>
+                                    <circle cx="23" cy="40" r="2" fill="#374151"/>
+                                    <circle cx="20" cy="38" r="2" fill="#374151"/>
                                 </g>
                                 
                                 <!-- Pata delantera izquierda -->
