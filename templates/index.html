@@ -351,54 +351,83 @@ Analista de Datos</textarea>
                             </div>
                         </div>
 
-                        <!-- Sección 4: Keywords -->
+                        <!-- Sección 4: Palabras Clave -->
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h5 class="text-primary border-bottom pb-2 mb-3">
                                     <i class="fas fa-key me-2"></i>
                                     Palabras Clave (Opcional)
                                 </h5>
+                                <p class="text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    Filtra ofertas según palabras específicas en título y descripción. 
+                                    <strong>Escribe una palabra por línea.</strong>
+                                </p>
                             </div>
                             
+                            <!-- Card: Incluir -->
                             <div class="col-md-4 mb-3">
-                                <label for="keywords_incluir" class="form-label text-success">
-                                    <i class="fas fa-check-circle"></i> Incluir (opcional - dejarlo vacío muestra todas)
-                                </label>
-                                <textarea 
-                                    class="form-control" 
-                                    id="keywords_incluir" 
-                                    rows="4" 
-                                    placeholder="Ej: python, sql, fraud (opcional)"
-                                ></textarea>
-                                <small class="text-muted">Una palabra clave por línea</small>
+                                <div class="card border-success h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="fas fa-check-circle"></i> <strong>Incluir</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text small mb-2">
+                                            ✅ Muestra SOLO ofertas que contengan AL MENOS UNA de estas palabras.
+                                            <br>📌 <em>Ejemplo: Si buscas empleos con Python O SQL</em>
+                                        </p>
+                                        <textarea 
+                                            class="form-control" 
+                                            id="keywords_incluir" 
+                                            rows="5" 
+                                            placeholder="python&#10;sql&#10;powerbi&#10;excel&#10;&#10;(Opcional - deja vacío para ver todas)"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
                             
+                            <!-- Card: Excluir -->
                             <div class="col-md-4 mb-3">
-                                <label for="keywords_excluir" class="form-label text-danger">
-                                    <i class="fas fa-times-circle"></i> Excluir (descalifica la oferta)
-                                </label>
-                                <textarea 
-                                    class="form-control" 
-                                    id="keywords_excluir" 
-                                    rows="4" 
-                                    placeholder="Ej: pasantía, call center (opcional)"
-                                ></textarea>
-                                <small class="text-muted">Una palabra clave por línea</small>
+                                <div class="card border-danger h-100">
+                                    <div class="card-header bg-danger text-white">
+                                        <i class="fas fa-times-circle"></i> <strong>Excluir</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text small mb-2">
+                                            ❌ ELIMINA ofertas que contengan CUALQUIERA de estas palabras.
+                                            <br>📌 <em>Ejemplo: Para evitar ventas o pasantías</em>
+                                        </p>
+                                        <textarea 
+                                            class="form-control" 
+                                            id="keywords_excluir" 
+                                            rows="5" 
+                                            placeholder="venta&#10;ventas&#10;pasantía&#10;call center&#10;practicante&#10;&#10;(Opcional)"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
                             
+                            <!-- Card: Bonus -->
                             <div class="col-md-4 mb-3">
-                                <label for="keywords_bonus" class="form-label text-info">
-                                    <i class="fas fa-star"></i> Bonus (aumenta el score)
-                                </label>
-                                <textarea 
-                                    class="form-control" 
-                                    id="keywords_bonus" 
-                                    rows="4" 
-                                    placeholder="Ej: clickhouse, power bi"
-                                >clickhouse
+                                <div class="card border-info h-100">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="fas fa-star"></i> <strong>Bonus (Priorizar)</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text small mb-2">
+                                            ⭐ AUMENTA la puntuación de ofertas con estas palabras (aparecen primero).
+                                            <br>📌 <em>Ejemplo: Tecnologías que prefieres</em>
+                                        </p>
+                                        <textarea 
+                                            class="form-control" 
+                                            id="keywords_bonus" 
+                                            rows="5" 
+                                            placeholder="clickhouse&#10;power bi&#10;remoto&#10;flexible&#10;startup&#10;&#10;(Opcional)"
+                                        >clickhouse
 power bi
 remoto</textarea>
-                                <small class="text-muted">Una palabra clave por línea</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

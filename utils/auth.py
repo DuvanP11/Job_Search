@@ -102,6 +102,7 @@ def get_current_user():
 
 def login_user(user):
     """Crear sesión de usuario"""
+    session.permanent = True  # Sesión persistente por 30 días
     session['user_id'] = user['id']
     session['username'] = user['username']
     session['email'] = user['email']

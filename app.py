@@ -19,6 +19,13 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'job-search-portal-2025-duvan'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
+# Configuración de sesiones persistentes
+app.config['SESSION_COOKIE_SECURE'] = False  # True en producción con HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 días
+app.config['SESSION_COOKIE_NAME'] = 'job_search_session'
+
 # Variables globales para caché de resultados
 ultima_busqueda = None
 resultados_cache = []
