@@ -257,9 +257,8 @@
                 <div class="bot-message">
                     <div class="message-avatar">🤖</div>
                     <div class="message-content">
-                        <p style="margin: 0 0 10px 0;"><strong>¡Hola! 👋 Soy tu asistente de CV</strong></p>
-                        <p style="margin: 0; font-size: 13px;">Optimiza tu CV para ATS y mejora tus oportunidades.</p>
-                        <p style="margin: 10px 0 0 0; font-size: 13px;">📎 <strong>Sube tu CV</strong> (PDF/DOCX)</p>
+                        <p style="margin: 0 0 8px 0;"><strong>¡Hola! 👋 Soy tu asistente de CV</strong></p>
+                        <p style="margin: 0; font-size: 13px;">📎 <strong>Sube tu CV</strong> (PDF/DOCX) para optimizarlo</p>
                     </div>
                 </div>
             </div>
@@ -495,6 +494,11 @@
 
         .message-content p:last-child {
             margin-bottom: 0;
+        }
+
+        /* Primer mensaje con margen extra arriba */
+        .cv-bot-messages .bot-message:first-child {
+            margin-top: 15px;
         }
 
         .message-content ul {
