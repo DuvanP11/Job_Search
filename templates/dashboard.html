@@ -312,6 +312,17 @@
             transform: scale(0.95);
         }
 
+        /* Cuando modal está abierto, mover botón más abajo */
+        .cv-bot-button.modal-open {
+            bottom: calc(600px + 125px);
+        }
+
+        @media (max-width: 768px) {
+            .cv-bot-button.modal-open {
+                bottom: calc(100% - 40px);
+            }
+        }
+
         .bot-badge {
             position: absolute;
             top: -5px;
@@ -574,13 +585,19 @@
             botButton.addEventListener('click', function() {
                 const isVisible = botModal.style.display === 'block';
                 botModal.style.display = isVisible ? 'none' : 'block';
+                
+                // Agregar clase al botón cuando modal está abierto
                 if (!isVisible) {
+                    botButton.classList.add('modal-open');
                     cvBotInput.focus();
+                } else {
+                    botButton.classList.remove('modal-open');
                 }
             });
 
             closeBotModal.addEventListener('click', function() {
                 botModal.style.display = 'none';
+                botButton.classList.remove('modal-open');
             });
 
             // Upload CV
