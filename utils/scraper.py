@@ -696,36 +696,19 @@ class BuscadorEmpleos:
         return hoy.strftime('%Y-%m-%d')
     
     def aplicar_filtros(self, oferta):
-        """Aplicar filtros de keywords, escolaridad y nivel de inglés a una oferta"""
+        """Aplicar solo filtros de keywords configurados por el usuario"""
         texto_completo = f"{oferta['titulo']} {oferta.get('descripcion', '')}".lower()
         
-        # FILTROS DE ESCOLARIDAD E INGLÉS DESACTIVADOS TEMPORALMENTE
-        # Son demasiado estrictos y filtran todo
-        # Se pueden activar después si el usuario los necesita
+        # SOLO FILTROS DE KEYWORDS - Los demás filtros desactivados
         
-        # Filtro de modalidad (remoto vs presencial)
-        modalidad = self.config.get('modalidad', None)
-        if modalidad and modalidad == 'remoto':
-            # Si busca REMOTO, solo aceptar ofertas que mencionen remoto/remote
-            ubicacion_texto = oferta.get('ubicacion', '').lower()
-            es_remoto = ('remoto' in texto_completo or 
-                        'remote' in texto_completo or 
-                        'remoto' in ubicacion_texto or 
-                        'remote' in ubicacion_texto)
-            
-            if not es_remoto:
-                logger.debug(f"⚠️ No es remoto: {oferta['titulo'][:40]}... (ubicación: {oferta.get('ubicacion')})")
-                return False
-        
-        # Filtro de exclusión (si está configurado)
-        if self.keywords.get('excluir'):
+        # Filtro de exclusión (si el usuario configuró palabras)
+        if self.keywords.get('excluir') and len(self.keywords['excluir']) > 0:
             for keyword_excluir in self.keywords['excluir']:
                 if keyword_excluir.lower() in texto_completo:
                     logger.debug(f"❌ Excluida: {oferta['titulo'][:40]}... (contiene '{keyword_excluir}')")
                     return False
         
-        # Filtro de inclusión (si está configurado)
-        # Si NO hay keywords de inclusión, aceptar todas
+        # Filtro de inclusión (si el usuario configuró palabras)
         if self.keywords.get('incluir') and len(self.keywords['incluir']) > 0:
             tiene_keyword = False
             for keyword_incluir in self.keywords['incluir']:
@@ -737,6 +720,7 @@ class BuscadorEmpleos:
                 logger.debug(f"⚠️ Sin keywords relevantes: {oferta['titulo'][:40]}...")
                 return False
         
+        # Si no hay filtros configurados, aceptar la oferta
         return True
     
     def calcular_score(self, oferta):

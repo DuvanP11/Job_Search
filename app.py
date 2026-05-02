@@ -16,15 +16,19 @@ import os
 from utils.scraper import BuscadorEmpleos
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'job-search-portal-2025-duvan'
+app.config['SECRET_KEY'] = 'job-search-portal-2025-duvan-secure-key-12345'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-# Configuración de sesiones persistentes
-app.config['SESSION_COOKIE_SECURE'] = False  # True en producción con HTTPS
+# Configuración de sesiones persistentes (cookies del lado del cliente)
+app.config['SESSION_TYPE'] = None  # Usar cookies firmadas del cliente (default Flask)
+app.config['SESSION_COOKIE_SECURE'] = False  # Cambiar a True si usas HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Permite subdominios
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 días
 app.config['SESSION_COOKIE_NAME'] = 'job_search_session'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Renovar sesión en cada request
 
 # Variables globales para caché de resultados
 ultima_busqueda = None
