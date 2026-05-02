@@ -15,6 +15,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Estilos para chips de cargos -->
+    <style>
+        .cargo-chip {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .cargo-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .cargo-chip .btn-remove {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            transition: all 0.3s ease;
+        }
+        
+        .cargo-chip .btn-remove:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.1);
+        }
+        
+        #cargos-chips-container {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        
+        #cargos-chips-container:empty:before {
+            content: "Los cargos seleccionados aparecerán aquí...";
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
@@ -100,45 +154,43 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="cargos" class="form-label">
+                                <label for="cargo-buscar" class="form-label">
                                     <i class="fas fa-briefcase"></i> Cargos / Títulos *
                                 </label>
                                 
                                 <!-- Buscar cargo con autocomplete -->
-                                <div class="input-group mb-2">
+                                <div class="input-group mb-3">
                                     <input 
                                         type="text" 
                                         class="form-control" 
                                         id="cargo-buscar"
                                         list="roles-list"
-                                        placeholder="🔍 Busca un cargo: Data Analyst, Developer..."
+                                        placeholder="🔍 Busca y selecciona cargos..."
                                     >
-                                    <button class="btn btn-outline-primary" type="button" id="btn-agregar-cargo">
+                                    <button class="btn btn-primary" type="button" id="btn-agregar-cargo">
                                         <i class="fas fa-plus"></i> Agregar
                                     </button>
                                 </div>
                                 <datalist id="roles-list">
-                                    <option value="Data Analyst">
-                                    <option value="Analista de Datos">
-                                    <option value="Data Scientist">
-                                    <option value="Full Stack Developer">
-                                    <option value="Frontend Developer">
-                                    <option value="Backend Developer">
-                                    <option value="Product Manager">
-                                    <option value="Project Manager">
+                                    <!-- Cargos se cargan dinámicamente desde /api/roles -->
                                 </datalist>
                                 
-                                <!-- Lista de cargos seleccionados -->
+                                <!-- Chips de cargos seleccionados -->
+                                <div id="cargos-chips-container" class="mb-2" style="min-height: 50px;">
+                                    <!-- Chips se agregan aquí dinámicamente -->
+                                </div>
+                                
+                                <!-- Input hidden para enviar al backend -->
                                 <textarea 
-                                    class="form-control" 
+                                    class="form-control d-none" 
                                     id="cargos" 
-                                    rows="3" 
-                                    placeholder="Cargos seleccionados aparecerán aquí"
+                                    name="cargos"
                                     required
-                                >Data Analyst
-Fraud Analyst
-Analista de Datos</textarea>
-                                <small class="text-muted">Usa el buscador arriba o escribe directamente</small>
+                                ></textarea>
+                                
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Busca y agrega uno o más cargos
+                                </small>
                             </div>
                             
                             <!-- Modalidad de Trabajo -->
@@ -651,41 +703,81 @@ remoto</textarea>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Script simple para agregar cargos -->
+    <!-- Script para agregar cargos con chips -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const btnAgregar = document.getElementById('btn-agregar-cargo');
         const inputBuscar = document.getElementById('cargo-buscar');
         const textareaCargos = document.getElementById('cargos');
+        const chipsContainer = document.getElementById('cargos-chips-container');
         
-        if (btnAgregar) {
-            btnAgregar.addEventListener('click', function() {
-                const cargo = inputBuscar.value.trim();
-                
-                if (cargo) {
-                    // Obtener cargos actuales
-                    const cargosActuales = textareaCargos.value.split('\n').filter(c => c.trim());
-                    
-                    // Evitar duplicados
-                    if (!cargosActuales.includes(cargo)) {
-                        cargosActuales.push(cargo);
-                        textareaCargos.value = cargosActuales.join('\n');
-                    }
-                    
-                    // Limpiar input
-                    inputBuscar.value = '';
-                    inputBuscar.focus();
-                }
+        // Array para mantener cargos seleccionados
+        let cargosSeleccionados = [];
+        
+        // Función para actualizar chips visuales
+        function actualizarChips() {
+            chipsContainer.innerHTML = '';
+            
+            cargosSeleccionados.forEach(cargo => {
+                const chip = document.createElement('div');
+                chip.className = 'cargo-chip';
+                chip.innerHTML = `
+                    <span>${cargo}</span>
+                    <button type="button" class="btn-remove" data-cargo="${cargo}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                chipsContainer.appendChild(chip);
             });
+            
+            // Actualizar textarea hidden para envío
+            textareaCargos.value = cargosSeleccionados.join('\n');
+        }
+        
+        // Función para agregar cargo
+        function agregarCargo() {
+            const cargo = inputBuscar.value.trim();
+            
+            if (cargo) {
+                // Evitar duplicados
+                if (!cargosSeleccionados.includes(cargo)) {
+                    cargosSeleccionados.push(cargo);
+                    actualizarChips();
+                }
+                
+                // Limpiar input
+                inputBuscar.value = '';
+                inputBuscar.focus();
+            }
+        }
+        
+        // Función para eliminar cargo
+        function eliminarCargo(cargo) {
+            cargosSeleccionados = cargosSeleccionados.filter(c => c !== cargo);
+            actualizarChips();
+        }
+        
+        // Event listener para botón agregar
+        if (btnAgregar) {
+            btnAgregar.addEventListener('click', agregarCargo);
             
             // Enter también agrega
             inputBuscar.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    btnAgregar.click();
+                    agregarCargo();
                 }
             });
         }
+        
+        // Event delegation para botones de eliminar
+        chipsContainer.addEventListener('click', function(e) {
+            const btnRemove = e.target.closest('.btn-remove');
+            if (btnRemove) {
+                const cargo = btnRemove.dataset.cargo;
+                eliminarCargo(cargo);
+            }
+        });
         
         // Cargar roles en datalist desde API
         fetch('/api/roles')
