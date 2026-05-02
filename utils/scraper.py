@@ -191,8 +191,9 @@ class BuscadorEmpleos:
                         'score': 50
                     }
                     
-                    self.ofertas_encontradas.append(oferta_data)
-                    ofertas_agregadas += 1
+                    # Agregar con filtros
+                    if self.agregar_oferta_con_filtros(oferta_data):
+                        ofertas_agregadas += 1
                     
                     if ofertas_agregadas >= self.max_ofertas_por_portal:
                         break
@@ -225,8 +226,9 @@ class BuscadorEmpleos:
                             'score': 50
                         }
                         
-                        self.ofertas_encontradas.append(oferta_data)
-                        ofertas_agregadas += 1
+                        # Agregar con filtros
+                        if self.agregar_oferta_con_filtros(oferta_data):
+                            ofertas_agregadas += 1
                         
                         if ofertas_agregadas >= self.max_ofertas_por_portal:
                             break
@@ -312,8 +314,9 @@ class BuscadorEmpleos:
                         'score': 50
                     }
                     
-                    self.ofertas_encontradas.append(oferta_data)
-                    ofertas_procesadas += 1
+                    # Agregar con filtros
+                    if self.agregar_oferta_con_filtros(oferta_data):
+                        ofertas_procesadas += 1
                     
                     if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
@@ -414,8 +417,9 @@ class BuscadorEmpleos:
                         'score': 50
                     }
                     
-                    self.ofertas_encontradas.append(oferta_data)
-                    ofertas_procesadas += 1
+                    # Agregar con filtros
+                    if self.agregar_oferta_con_filtros(oferta_data):
+                        ofertas_procesadas += 1
                     
                     if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
@@ -508,8 +512,9 @@ class BuscadorEmpleos:
                         'score': 50
                     }
                     
-                    self.ofertas_encontradas.append(oferta_data)
-                    ofertas_procesadas += 1
+                    # Agregar con filtros
+                    if self.agregar_oferta_con_filtros(oferta_data):
+                        ofertas_procesadas += 1
                     
                     if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
@@ -594,8 +599,9 @@ class BuscadorEmpleos:
                         'score': 50
                     }
                     
-                    self.ofertas_encontradas.append(oferta_data)
-                    ofertas_procesadas += 1
+                    # Agregar con filtros
+                    if self.agregar_oferta_con_filtros(oferta_data):
+                        ofertas_procesadas += 1
                     
                     if ofertas_procesadas >= self.max_ofertas_por_portal:
                         break
@@ -744,6 +750,20 @@ class BuscadorEmpleos:
                         logger.debug(f"⚠️ Sin nivel de inglés requerido ({nivel_ingles_requerido}): {oferta['titulo'][:40]}...")
                         return False
         
+        # Filtro de modalidad (remoto vs presencial)
+        modalidad = self.config.get('modalidad', None)
+        if modalidad and modalidad == 'remoto':
+            # Si busca REMOTO, solo aceptar ofertas que mencionen remoto/remote
+            ubicacion_texto = oferta.get('ubicacion', '').lower()
+            es_remoto = ('remoto' in texto_completo or 
+                        'remote' in texto_completo or 
+                        'remoto' in ubicacion_texto or 
+                        'remote' in ubicacion_texto)
+            
+            if not es_remoto:
+                logger.debug(f"⚠️ No es remoto: {oferta['titulo'][:40]}... (ubicación: {oferta.get('ubicacion')})")
+                return False
+        
         # Filtro de exclusión (si está configurado)
         if self.keywords.get('excluir'):
             for keyword_excluir in self.keywords['excluir']:
@@ -801,6 +821,22 @@ class BuscadorEmpleos:
                 pass
         
         return min(score, 100)
+    
+    def agregar_oferta_con_filtros(self, oferta_data):
+        """
+        Agregar oferta solo si pasa todos los filtros
+        Retorna True si se agregó, False si fue filtrada
+        """
+        # Aplicar filtros
+        if not self.aplicar_filtros(oferta_data):
+            return False
+        
+        # Calcular score
+        oferta_data['score'] = self.calcular_score(oferta_data)
+        
+        # Agregar a la lista
+        self.agregar_oferta_con_filtros(oferta_data)
+        return True
     
     def filtrar_por_fechas(self, fecha_desde=None, fecha_hasta=None):
         """

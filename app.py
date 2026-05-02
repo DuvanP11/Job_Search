@@ -65,13 +65,16 @@ def buscar():
             'titulos': data.get('titulos', []),
             'ubicaciones': data.get('ubicaciones', []),
             'pais': data.get('pais', 'Colombia'),
+            'modalidad': data.get('modalidad', 'presencial'),
             'salario_minimo': int(data.get('salario_minimo', 0)),
             'tipo_contrato': data.get('tipo_contrato', 'todos'),
-            'modalidades': data.get('modalidades', ['remoto', 'híbrido', 'presencial']),
+            'escolaridad': data.get('escolaridad', 'todos'),
+            'nivel_ingles': data.get('nivel_ingles', 'todos'),
             'experiencia_minima': int(data.get('experiencia_minima', 0)),
             'experiencia_maxima': int(data.get('experiencia_maxima', 15)),
             'fecha_desde': data.get('fecha_desde', None),
             'fecha_hasta': data.get('fecha_hasta', None),
+            'resultados_por_portal': int(data.get('resultados_por_portal', 10)),
         }
         
         # Keywords
