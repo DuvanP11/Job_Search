@@ -1156,6 +1156,47 @@ def cv_bot_upload():
         })
 
 
+@app.route('/api/cv-bot/status', methods=['GET'])
+def cv_bot_status():
+    """Endpoint de diagnóstico del bot"""
+    status = {
+        "timestamp": datetime.now().isoformat(),
+        "imports": {},
+        "modules": {},
+        "errors": []
+    }
+    
+    # Verificar imports
+    try:
+        import PyPDF2
+        status["imports"]["PyPDF2"] = "✅ OK"
+    except Exception as e:
+        status["imports"]["PyPDF2"] = f"❌ {str(e)}"
+        status["errors"].append(f"PyPDF2: {str(e)}")
+    
+    try:
+        import docx
+        status["imports"]["docx"] = "✅ OK"
+    except Exception as e:
+        status["imports"]["docx"] = f"❌ {str(e)}"
+        status["errors"].append(f"docx: {str(e)}")
+    
+    try:
+        from utils.cv_bot import get_cv_bot
+        status["imports"]["cv_bot"] = "✅ OK"
+        
+        # Intentar crear instancia
+        bot = get_cv_bot()
+        status["modules"]["bot_instance"] = "✅ OK"
+        status["modules"]["ollama_status"] = bot.check_ollama_status()
+        
+    except Exception as e:
+        status["imports"]["cv_bot"] = f"❌ {str(e)}"
+        status["errors"].append(f"cv_bot: {str(e)}")
+    
+    return jsonify(status)
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Manejo de error 404"""
