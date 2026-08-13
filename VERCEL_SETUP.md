@@ -89,8 +89,84 @@ Ollama corre en tu equipo, y Vercel no puede alcanzar `localhost`. Sin
 reorganiza el CV y aplica todo el formato ATS, pero no reescribe el texto. La
 interfaz lo indica.
 
-Ten en cuenta el límite de tiempo: `vercel.json` fija `maxDuration` en 60
-segundos, y generar un CV con un modelo grande puede tardar más.
+Para conectarlo, sigue la sección siguiente.
+
+---
+
+## Conectar Ollama con la aplicación desplegada
+
+### Por qué hace falta un proxy
+
+Ollama **no tiene autenticación**. Publicarlo tal cual en internet permite a
+cualquiera generar texto con tu equipo, listar tus modelos o borrarlos.
+
+`scripts/ollama_proxy.py` se pone delante: exige un token en la cabecera
+`Authorization` y solo deja pasar `/api/tags`, `/api/generate`, `/api/chat` y
+`/api/embeddings`. Los endpoints que modifican el equipo (`/api/delete`,
+`/api/pull`) quedan bloqueados.
+
+### Instalar cloudflared
+
+El túnel publica el proxy sin abrir puertos en el router:
+
+```bash
+curl -sL -o /tmp/cf.tgz https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz
+tar xzf /tmp/cf.tgz -C /tmp && mkdir -p ~/.local/bin && mv /tmp/cloudflared ~/.local/bin/
+```
+
+En Mac con Intel, cambia `darwin-arm64` por `darwin-amd64`.
+
+### Levantarlo
+
+Con la aplicación Ollama abierta:
+
+```bash
+./scripts/exponer_ollama.sh
+```
+
+El script arranca el proxy, abre el túnel e imprime las tres variables que hay
+que configurar. **Deja esa terminal abierta**: al cerrarla se cae el túnel.
+
+### Configurar el proyecto
+
+En **Settings → Environment Variables**, y volver a desplegar:
+
+| Variable | Valor |
+|---|---|
+| `OLLAMA_URL` | La URL que imprime el script |
+| `OLLAMA_TOKEN` | El token que imprime el script |
+| `OLLAMA_MODEL` | `llama3.1` |
+
+### Elegir el modelo por el tiempo, no por la calidad
+
+`vercel.json` fija `maxDuration` en 60 segundos y la petición se corta ahí.
+Medido sobre el mismo CV:
+
+| Modelo | Tiempo | ¿Cabe en 60 s? |
+|---|---|---|
+| `llama3.1` | ~33 s | Sí |
+| `qwen3:14b` | ~91 s | **No** |
+
+Con un CV largo, `llama3.1` puede acercarse al límite. Si empiezas a ver
+tiempos de espera agotados, instala un modelo más pequeño:
+
+```bash
+ollama pull llama3.2
+```
+
+### Limitaciones de este montaje
+
+- **La URL es temporal.** `trycloudflare.com` asigna una distinta en cada
+  arranque, así que hay que actualizar `OLLAMA_URL` y volver a desplegar. Para
+  una URL fija hace falta una cuenta de Cloudflare con un dominio propio y
+  crear un túnel con nombre.
+- **Depende de tu equipo.** Si se apaga, se suspende o pierde la conexión, la
+  aplicación sigue funcionando pero en modo básico.
+- **La velocidad la pone tu equipo**, y lo comparten todos los usuarios de la
+  web: dos peticiones a la vez tardan más.
+
+Si necesitas que la IA funcione siempre, sin depender de tu equipo, lo
+apropiado es una API alojada en lugar de Ollama.
 
 ### Sobre el scraper con Selenium
 

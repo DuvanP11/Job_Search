@@ -52,6 +52,21 @@ Si Ollama no está corriendo, el botón sigue funcionando en **modo básico**:
 reorganiza el CV por secciones y aplica todo el formato ATS, pero no reescribe
 el texto. La respuesta lo indica con un aviso.
 
+### Usarlo desde la aplicación desplegada
+
+Ollama escucha solo en `localhost`, así que un servidor remoto no lo alcanza.
+Para conectarlo hay un proxy autenticado y un túnel:
+
+```bash
+./scripts/exponer_ollama.sh
+```
+
+Los pasos completos y sus limitaciones están en [VERCEL_SETUP.md](VERCEL_SETUP.md).
+
+> ⚠️ No publiques Ollama directamente en internet: no tiene autenticación, así
+> que cualquiera podría usar tu equipo o borrar tus modelos. Para eso está
+> `scripts/ollama_proxy.py`.
+
 ## Instalación de Ollama
 
 ### 1. Descargar Ollama
@@ -143,6 +158,7 @@ Con variables de entorno, sin tocar el código:
 ```bash
 export OLLAMA_MODEL=qwen3:14b
 export OLLAMA_URL=http://localhost:11434
+export OLLAMA_TOKEN=          # solo si usas el proxy autenticado
 ```
 
 Si no defines `OLLAMA_MODEL`, el bot consulta `/api/tags` y usa el primer
