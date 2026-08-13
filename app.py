@@ -10,7 +10,6 @@ Aplicación web Flask para búsqueda automatizada de ofertas laborales
 
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, flash
 from datetime import datetime, timedelta
-import pandas as pd
 import io
 import os
 import random
@@ -18,14 +17,23 @@ import re
 import string
 import json
 from utils.scraper import BuscadorEmpleos
+from utils.kv_store import get_kv_store
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'job-search-portal-2025-duvan-secure-key-12345'
+
+# La clave firma las cookies de sesión: si se conoce, se pueden falsificar
+# sesiones de cualquier usuario. Por eso se lee del entorno.
+# El valor de respaldo solo sirve para desarrollo local.
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-only-inseguro-cambiar-en-produccion')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+
+# Vercel expone la app siempre por HTTPS y define VERCEL=1 en el entorno
+EN_VERCEL = bool(os.getenv('VERCEL'))
 
 # Configuración de sesiones persistentes (cookies del lado del cliente)
 app.config['SESSION_TYPE'] = None  # Usar cookies firmadas del cliente (default Flask)
-app.config['SESSION_COOKIE_SECURE'] = False  # Cambiar a True si usas HTTPS
+# La cookie solo viaja por HTTPS en producción; en local seguiría sin enviarse
+app.config['SESSION_COOKIE_SECURE'] = EN_VERCEL
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_PATH'] = '/'
@@ -39,24 +47,60 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Verificar volume al inicio
-data_path = os.path.abspath('data')
-logger.info(f"🔍 DATA PATH: {data_path}")
-logger.info(f"🔍 CWD: {os.getcwd()}")
-logger.info(f"🔍 DATA EXISTS: {os.path.exists('data')}")
-if os.path.exists('data'):
-    logger.info(f"🔍 DATA FILES: {os.listdir('data')}")
-    users_file = 'data/users.json'
-    if os.path.exists(users_file):
-        size = os.path.getsize(users_file)
-        logger.info(f"🔍 USERS FILE SIZE: {size} bytes")
-        with open(users_file, 'r') as f:
-            content = f.read()
-            logger.info(f"🔍 USERS CONTENT: {content[:200]}")
+# En serverless el disco es de solo lectura y se reinicia en cada despliegue,
+# así que sin PostgreSQL no se puede registrar ningún usuario. Se avisa fuerte
+# al arrancar en vez de fallar de forma confusa al primer registro.
+if EN_VERCEL and not os.getenv('DATABASE_URL'):
+    logger.error("=" * 60)
+    logger.error("❌ FALTA DATABASE_URL: el registro y el login van a fallar.")
+    logger.error("   El almacenamiento en JSON no funciona en Vercel porque")
+    logger.error("   el sistema de archivos es de solo lectura.")
+    logger.error("=" * 60)
 
-# Variables globales para caché de resultados
-ultima_busqueda = None
-resultados_cache = []
+if EN_VERCEL and not os.getenv('SECRET_KEY'):
+    logger.error("❌ FALTA SECRET_KEY: las sesiones se pueden falsificar.")
+
+# Verificar volume al inicio (solo tiene sentido con almacenamiento en disco)
+if not EN_VERCEL:
+    data_path = os.path.abspath('data')
+    logger.info(f"🔍 DATA PATH: {data_path}")
+    logger.info(f"🔍 CWD: {os.getcwd()}")
+    logger.info(f"🔍 DATA EXISTS: {os.path.exists('data')}")
+    if os.path.exists('data'):
+        logger.info(f"🔍 DATA FILES: {os.listdir('data')}")
+        users_file = 'data/users.json'
+        if os.path.exists(users_file):
+            size = os.path.getsize(users_file)
+            logger.info(f"🔍 USERS FILE SIZE: {size} bytes")
+            with open(users_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                logger.info(f"🔍 USERS CONTENT: {content[:200]}")
+
+# Caché de resultados de búsqueda.
+# Vive en el KV store y no en variables globales: en serverless la petición
+# que exporta el Excel puede atenderla un proceso distinto al que buscó.
+
+
+def _clave_busqueda():
+    """Identificador de sesión para el caché de búsqueda."""
+    if 'busqueda_session_id' not in session:
+        session['busqueda_session_id'] = ''.join(random.choices(string.ascii_letters + string.digits, k=24))
+        session.permanent = True
+    return session['busqueda_session_id']
+
+
+def guardar_busqueda(ofertas):
+    """Guarda los resultados de la búsqueda actual."""
+    get_kv_store().set(f'busqueda:{_clave_busqueda()}', {
+        'ofertas': ofertas,
+        'fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+
+def obtener_busqueda():
+    """Devuelve (ofertas, fecha) de la última búsqueda de esta sesión."""
+    datos = get_kv_store().get(f'busqueda:{_clave_busqueda()}') or {}
+    return datos.get('ofertas', []), datos.get('fecha')
 
 # LOGGING DE TIPO DE BASE DE DATOS
 logger.info("=" * 60)
@@ -71,9 +115,22 @@ else:
     logger.info("⚠️ DATABASE_URL NO ENCONTRADA - Usará JSON")
 logger.info("=" * 60)
 
-# Códigos de recuperación temporal (en memoria)
-# En producción usar Redis o base de datos
-recovery_codes = {}
+# Códigos de recuperación de contraseña.
+# También en el KV store: en serverless el código generado en una petición
+# tiene que seguir ahí cuando el usuario lo escribe en la siguiente.
+TTL_CODIGO_RECUPERACION = 15 * 60  # 15 minutos
+
+
+def guardar_codigo_recuperacion(email, datos):
+    get_kv_store().set(f'recovery:{email}', datos, ttl=TTL_CODIGO_RECUPERACION)
+
+
+def obtener_codigo_recuperacion(email):
+    return get_kv_store().get(f'recovery:{email}')
+
+
+def borrar_codigo_recuperacion(email):
+    get_kv_store().delete(f'recovery:{email}')
 
 
 @app.route('/')
@@ -94,8 +151,6 @@ def index():
 @app.route('/buscar', methods=['POST'])
 def buscar():
     """Endpoint para ejecutar búsqueda de empleos"""
-    global ultima_busqueda, resultados_cache
-    
     try:
         # Obtener parámetros del formulario
         data = request.get_json()
@@ -165,8 +220,8 @@ def buscar():
             
             # Guardar en caché
             resultados_cache = buscador.ofertas_encontradas
-            ultima_busqueda = datetime.now()
-            
+            guardar_busqueda(resultados_cache)
+
         except Exception as e:
             print(f"❌ Error en búsqueda: {str(e)}")
             import traceback
@@ -190,7 +245,7 @@ def buscar():
             'total_ofertas': len(resultados_cache),
             'score_promedio': round(sum(o['score'] for o in resultados_cache) / len(resultados_cache), 1) if resultados_cache else 0,
             'portales_consultados': len([p for p, activo in portales.items() if activo]),
-            'fecha_busqueda': ultima_busqueda.strftime('%Y-%m-%d %H:%M:%S')
+            'fecha_busqueda': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
         print(f"✅ Búsqueda completada: {resumen['total_ofertas']} ofertas encontradas")
@@ -223,40 +278,39 @@ def buscar():
 @app.route('/exportar', methods=['GET'])
 def exportar_excel():
     """Exportar resultados a Excel"""
-    global resultados_cache
-    
     try:
+        resultados_cache, _ = obtener_busqueda()
+
         if not resultados_cache:
             return jsonify({
                 'success': False,
                 'error': 'No hay resultados para exportar. Realiza una búsqueda primero.'
             }), 400
-        
-        # Crear DataFrame
-        df = pd.DataFrame(resultados_cache)
-        
-        # Reordenar columnas
-        columnas_orden = ['score', 'titulo', 'empresa', 'ubicacion', 'portal', 
-                         'link', 'fecha_publicacion', 'fecha_busqueda']
-        columnas_disponibles = [col for col in columnas_orden if col in df.columns]
-        df = df[columnas_disponibles]
-        
-        # Crear archivo Excel en memoria
+
+        # Se escribe el Excel con openpyxl directamente. Antes se usaba pandas
+        # solo para esto, y pesa demasiado para el límite de tamaño de una
+        # función serverless.
+        from openpyxl import Workbook
+
+        columnas_orden = ['score', 'titulo', 'empresa', 'ubicacion', 'portal',
+                          'link', 'fecha_publicacion', 'fecha_busqueda']
+        columnas = [c for c in columnas_orden if any(c in oferta for oferta in resultados_cache)]
+
+        libro = Workbook()
+        hoja = libro.active
+        hoja.title = 'Ofertas'
+        hoja.append(columnas)
+
+        for oferta in resultados_cache:
+            hoja.append([oferta.get(col, '') for col in columnas])
+
+        anchos = {'score': 10, 'titulo': 50, 'empresa': 30, 'ubicacion': 20,
+                  'portal': 15, 'link': 60, 'fecha_publicacion': 15, 'fecha_busqueda': 15}
+        for indice, col in enumerate(columnas, start=1):
+            hoja.column_dimensions[hoja.cell(row=1, column=indice).column_letter].width = anchos.get(col, 20)
+
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Ofertas', index=False)
-            
-            # Formatear
-            worksheet = writer.sheets['Ofertas']
-            worksheet.column_dimensions['A'].width = 10  # Score
-            worksheet.column_dimensions['B'].width = 50  # Título
-            worksheet.column_dimensions['C'].width = 30  # Empresa
-            worksheet.column_dimensions['D'].width = 20  # Ubicación
-            worksheet.column_dimensions['E'].width = 15  # Portal
-            worksheet.column_dimensions['F'].width = 60  # Link
-            worksheet.column_dimensions['G'].width = 15  # Fecha Publicación
-            worksheet.column_dimensions['H'].width = 15  # Fecha Búsqueda
-        
+        libro.save(output)
         output.seek(0)
         
         # Nombre del archivo con timestamp
@@ -281,27 +335,32 @@ def exportar_excel():
 @app.route('/estadisticas', methods=['GET'])
 def obtener_estadisticas():
     """Obtener estadísticas de la última búsqueda"""
-    global resultados_cache, ultima_busqueda
-    
+    resultados_cache, fecha_busqueda = obtener_busqueda()
+
     if not resultados_cache:
         return jsonify({
             'success': False,
             'error': 'No hay resultados disponibles'
         }), 400
-    
-    # Calcular estadísticas
-    df = pd.DataFrame(resultados_cache)
-    
+
+    # Las estadísticas se calculan con Counter en vez de pandas, que solo se
+    # usaba aquí y en la exportación a Excel.
+    from collections import Counter
+
+    scores = [o['score'] for o in resultados_cache if isinstance(o.get('score'), (int, float))]
+    portales = Counter(o['portal'] for o in resultados_cache if o.get('portal'))
+    ubicaciones = Counter(o['ubicacion'] for o in resultados_cache if o.get('ubicacion'))
+
     stats = {
         'total_ofertas': len(resultados_cache),
-        'score_promedio': df['score'].mean() if 'score' in df else 0,
-        'score_max': df['score'].max() if 'score' in df else 0,
-        'score_min': df['score'].min() if 'score' in df else 0,
-        'por_portal': df['portal'].value_counts().to_dict() if 'portal' in df else {},
-        'por_ubicacion': df['ubicacion'].value_counts().head(10).to_dict() if 'ubicacion' in df else {},
-        'ultima_busqueda': ultima_busqueda.strftime('%Y-%m-%d %H:%M:%S') if ultima_busqueda else None
+        'score_promedio': round(sum(scores) / len(scores), 2) if scores else 0,
+        'score_max': max(scores) if scores else 0,
+        'score_min': min(scores) if scores else 0,
+        'por_portal': dict(portales),
+        'por_ubicacion': dict(ubicaciones.most_common(10)),
+        'ultima_busqueda': fecha_busqueda
     }
-    
+
     return jsonify({
         'success': True,
         'estadisticas': stats
@@ -804,12 +863,9 @@ def forgot_password():
         # Generar código de 6 dígitos
         code = ''.join(random.choices(string.digits, k=6))
         
-        # Guardar código con expiración de 15 minutos
-        recovery_codes[email] = {
-            'code': code,
-            'expires_at': datetime.now() + timedelta(minutes=15)
-        }
-        
+        # Guardar código con expiración de 15 minutos (la maneja el KV store)
+        guardar_codigo_recuperacion(email, {'code': code})
+
         # En producción, enviar por email
         # Por ahora, mostrar el código en la pantalla
         flash(f'Tu código de recuperación es: {code} (válido por 15 minutos)', 'info')
@@ -834,18 +890,13 @@ def reset_password(email):
             return redirect(url_for('reset_password', email=email))
         
         # Validar código
-        if email not in recovery_codes:
+        # El KV store descarta solo los códigos vencidos, así que si no está
+        # es porque expiró o nunca se pidió
+        recovery_data = obtener_codigo_recuperacion(email)
+        if not recovery_data:
             flash('Código expirado o inválido', 'error')
             return redirect(url_for('forgot_password'))
-        
-        recovery_data = recovery_codes[email]
-        
-        # Verificar expiración
-        if datetime.now() > recovery_data['expires_at']:
-            del recovery_codes[email]
-            flash('El código ha expirado. Solicita uno nuevo', 'error')
-            return redirect(url_for('forgot_password'))
-        
+
         # Verificar código
         if code != recovery_data['code']:
             flash('Código incorrecto', 'error')
@@ -862,8 +913,8 @@ def reset_password(email):
         db.update_user(user['id'], user)
         
         # Eliminar código usado
-        del recovery_codes[email]
-        
+        borrar_codigo_recuperacion(email)
+
         flash('Contraseña actualizada exitosamente', 'success')
         return redirect(url_for('login'))
     
@@ -1044,13 +1095,10 @@ def admin_reset_all():
 
 # ==================== ENDPOINTS DEL BOT DE CV ====================
 
-# Texto del CV por sesión. El bot (utils/cv_bot.py) guarda el CV en una
-# instancia global, así que el CV de un usuario se le queda al siguiente;
-# aquí se guarda por sesión para que eso no ocurra.
-cv_textos_por_sesion = {}
-
-# CV ya reestructurado por sesión, para que la descarga no vuelva a llamar al LLM
-cv_optimizados_por_sesion = {}
+# El CV se guarda por sesión en el KV store. El bot (utils/cv_bot.py) lo
+# guarda en una instancia global, así que el CV de un usuario se le quedaba
+# al siguiente; y en serverless un diccionario en memoria no sobrevive de una
+# petición a la otra.
 
 
 def _clave_cv_sesion():
@@ -1063,12 +1111,22 @@ def _clave_cv_sesion():
 
 def guardar_cv_sesion(texto):
     """Asocia el texto del CV a la sesión actual."""
-    cv_textos_por_sesion[_clave_cv_sesion()] = texto
+    get_kv_store().set(f'cv_texto:{_clave_cv_sesion()}', texto)
 
 
 def obtener_cv_sesion():
     """Texto del CV de la sesión actual, o None si no ha subido ninguno."""
-    return cv_textos_por_sesion.get(_clave_cv_sesion())
+    return get_kv_store().get(f'cv_texto:{_clave_cv_sesion()}')
+
+
+def guardar_cv_optimizado(datos):
+    """Guarda el CV ya reestructurado para que la descarga no repita el LLM."""
+    get_kv_store().set(f'cv_optimizado:{_clave_cv_sesion()}', datos)
+
+
+def obtener_cv_optimizado():
+    """CV reestructurado de la sesión actual, o None."""
+    return get_kv_store().get(f'cv_optimizado:{_clave_cv_sesion()}')
 
 
 @app.route('/api/cv-bot/chat', methods=['POST'])
@@ -1273,7 +1331,7 @@ def cv_bot_optimizar():
         resultado = generar_cv_optimizado(get_cv_bot(), cv_text, cargo_objetivo)
 
         # El resultado se guarda para que la descarga no tenga que regenerarlo
-        cv_optimizados_por_sesion[_clave_cv_sesion()] = resultado['datos']
+        guardar_cv_optimizado(resultado['datos'])
 
         logger.info(f"CV optimizado en modo '{resultado['modo']}' (cargo: {cargo_objetivo or 'general'})")
 
@@ -1298,7 +1356,7 @@ def cv_bot_descargar():
         logger.error(f"Error importando cv_builder: {str(e)}")
         return jsonify({'error': f'Módulo no disponible: {str(e)}'}), 500
 
-    datos = cv_optimizados_por_sesion.get(_clave_cv_sesion())
+    datos = obtener_cv_optimizado()
     if not datos:
         return jsonify({'error': 'Primero optimiza tu CV'}), 400
 

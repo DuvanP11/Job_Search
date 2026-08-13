@@ -1,0 +1,24 @@
+# Todo lo que no necesita la función serverless. Cuanto menor sea el bundle,
+# más rápido arranca la función y menos riesgo hay de topar el límite de tamaño.
+
+# Scraper con Selenium: no se puede usar en serverless (no hay navegador) y
+# ningún módulo de la aplicación lo importa.
+utils/selenium_scraper.py
+
+# Datos locales: en producción todo vive en PostgreSQL
+data/
+
+# Documentación y configuración de otros proveedores
+*.md
+Procfile
+nixpacks.toml
+runtime.txt
+.github/
+tests/
+
+# Entornos y artefactos locales
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
