@@ -28,10 +28,20 @@ class CVBotOllama:
             ollama_url: URL de Ollama API
             model: Modelo a usar (llama3.1, qwen3, mistral, etc.)
         """
-        self.ollama_url = ollama_url or os.getenv('OLLAMA_URL', 'http://localhost:11434')
+        self.ollama_url = (ollama_url or os.getenv('OLLAMA_URL', 'http://localhost:11434')).rstrip('/')
         self.model = model or os.getenv('OLLAMA_MODEL')
+        # Token del proxy autenticado (scripts/ollama_proxy.py). Vacío cuando
+        # Ollama corre en la misma máquina y no hace falta protegerlo.
+        self.token = os.getenv('OLLAMA_TOKEN', '')
         self.cv_text = None
         self._modelo_resuelto = None
+
+    def _cabeceras(self):
+        """Cabeceras de las peticiones, con el token si está configurado."""
+        cabeceras = {'Content-Type': 'application/json'}
+        if self.token:
+            cabeceras['Authorization'] = f'Bearer {self.token}'
+        return cabeceras
 
     def resolve_model(self) -> str:
         """Modelo a usar, detectando uno instalado si no se configuró ninguno.
@@ -45,7 +55,8 @@ class CVBotOllama:
             return self._modelo_resuelto
 
         try:
-            response = requests.get(f"{self.ollama_url}/api/tags", timeout=3)
+            response = requests.get(f"{self.ollama_url}/api/tags",
+                                    headers=self._cabeceras(), timeout=6)
             modelos = [m['name'] for m in response.json().get('models', [])]
             # Los modelos de embeddings no sirven para generar texto
             candidatos = [m for m in modelos if 'embed' not in m.lower()]
@@ -70,7 +81,8 @@ class CVBotOllama:
     def check_ollama_status(self) -> bool:
         """Verificar si Ollama está corriendo"""
         try:
-            response = requests.get(f"{self.ollama_url}/api/tags", timeout=2)
+            response = requests.get(f"{self.ollama_url}/api/tags",
+                                    headers=self._cabeceras(), timeout=6)
             return response.status_code == 200
         except:
             return False
@@ -339,7 +351,7 @@ Evita: Fotos, gráficos complejos, colores excesivos."""
             payload["options"] = options
 
         try:
-            response = requests.post(url, json=payload, timeout=180)
+            response = requests.post(url, json=payload, headers=self._cabeceras(), timeout=180)
             response.raise_for_status()
             return response.json()['response']
         except requests.exceptions.ConnectionError:
