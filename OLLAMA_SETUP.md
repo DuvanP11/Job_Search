@@ -10,6 +10,47 @@ El bot asistente de CV usa IA local (Ollama) para:
 - ✅ **Revisar gramática y claridad**
 - ✅ **Mejorar descripción de logros**
 - ✅ **Recomendar mejoras específicas**
+- ✅ **Reescribir el CV completo y entregarlo en DOCX** con el formato que
+  exigen los ATS (botón "✨ Mejorar mi CV")
+
+## ✨ Botón "Mejorar mi CV"
+
+Además de analizar, el bot **reconstruye** el CV: reescribe el contenido con
+verbos de acción, lo reordena en secciones estándar y lo entrega en un DOCX
+listo para postular.
+
+### Flujo
+
+1. Sube el CV con 📎 (PDF o DOCX)
+2. Opcional: escribe el cargo al que aplicas (ej. "Analista de Datos") para
+   que el bot priorice las habilidades relevantes
+3. Pulsa **✨ Mejorar mi CV**
+4. Revisa la vista previa y descarga el DOCX
+
+### Formato que aplica el documento generado
+
+| Regla | Valor |
+|-------|-------|
+| Fuente | Calibri 11 pt (cuerpo), 20 pt (nombre), 12 pt (secciones) |
+| Márgenes | 1.9 cm en los cuatro lados |
+| Interlineado | 1.15 |
+| Tablas / columnas / imágenes | Ninguna (los ATS no las parsean) |
+| Encabezado y pie de página | Vacíos; el contacto va en el cuerpo |
+| Títulos de sección | Mayúscula sostenida, nombres estándar |
+| Viñetas | Estilo nativo `List Bullet` de Word |
+| Habilidades | En línea, separadas por comas |
+
+### Qué NO hace
+
+El prompt le prohíbe al modelo inventar datos: si una cifra, empresa, fecha o
+certificación no está en el CV original, el campo queda vacío. Reescribe la
+redacción, no los hechos.
+
+### Sin Ollama
+
+Si Ollama no está corriendo, el botón sigue funcionando en **modo básico**:
+reorganiza el CV por secciones y aplica todo el formato ATS, pero no reescribe
+el texto. La respuesta lo indica con un aviso.
 
 ## Instalación de Ollama
 
@@ -97,19 +138,16 @@ ollama run llama3.1 "Hola, ¿cómo estás?"
 
 ### Cambiar Modelo
 
-Edita `utils/cv_bot.py`:
+Con variables de entorno, sin tocar el código:
 
-```python
-cv_bot = CVBotOllama(model="mistral")  # Cambiar aquí
+```bash
+export OLLAMA_MODEL=qwen3:14b
+export OLLAMA_URL=http://localhost:11434
 ```
 
-### Cambiar URL de Ollama
-
-Si Ollama corre en otro puerto:
-
-```python
-cv_bot = CVBotOllama(ollama_url="http://localhost:11434")
-```
+Si no defines `OLLAMA_MODEL`, el bot consulta `/api/tags` y usa el primer
+modelo generalista que encuentre instalado (descarta los de embeddings y
+prefiere uno no especializado en código).
 
 ### Modelos Recomendados
 
