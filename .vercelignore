@@ -16,6 +16,11 @@ runtime.txt
 .github/
 tests/
 
+# Vercel construye con Python 3.12, pero uv lee este archivo y aborta el build
+# al ver que pide 3.11.9. Se excluye aquí en vez de borrarlo porque Railway y
+# el entorno local sí lo usan.
+.python-version
+
 # Entornos y artefactos locales
 .venv/
 venv/
