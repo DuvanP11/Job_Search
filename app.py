@@ -14,6 +14,7 @@ import pandas as pd
 import io
 import os
 import random
+import re
 import string
 import json
 from utils.scraper import BuscadorEmpleos
@@ -1043,6 +1044,33 @@ def admin_reset_all():
 
 # ==================== ENDPOINTS DEL BOT DE CV ====================
 
+# Texto del CV por sesión. El bot (utils/cv_bot.py) guarda el CV en una
+# instancia global, así que el CV de un usuario se le queda al siguiente;
+# aquí se guarda por sesión para que eso no ocurra.
+cv_textos_por_sesion = {}
+
+# CV ya reestructurado por sesión, para que la descarga no vuelva a llamar al LLM
+cv_optimizados_por_sesion = {}
+
+
+def _clave_cv_sesion():
+    """Identificador estable de la sesión para guardar su CV."""
+    if 'cv_session_id' not in session:
+        session['cv_session_id'] = ''.join(random.choices(string.ascii_letters + string.digits, k=24))
+        session.permanent = True
+    return session['cv_session_id']
+
+
+def guardar_cv_sesion(texto):
+    """Asocia el texto del CV a la sesión actual."""
+    cv_textos_por_sesion[_clave_cv_sesion()] = texto
+
+
+def obtener_cv_sesion():
+    """Texto del CV de la sesión actual, o None si no ha subido ninguno."""
+    return cv_textos_por_sesion.get(_clave_cv_sesion())
+
+
 @app.route('/api/cv-bot/chat', methods=['POST'])
 def cv_bot_chat():
     """Endpoint para chat con el bot de CV"""
@@ -1065,7 +1093,10 @@ def cv_bot_chat():
         
         # Obtener instancia del bot
         bot = get_cv_bot()
-        
+
+        # Usar el CV de esta sesión, no el que dejó el último usuario
+        bot.cv_text = obtener_cv_sesion()
+
         # Generar respuesta (el método chat() ya tiene fallback automático)
         response = bot.chat(message)
         
@@ -1116,6 +1147,7 @@ def cv_bot_upload():
             try:
                 cv_text = bot.parse_cv(file_bytes, filename)
                 bot.cv_text = cv_text
+                guardar_cv_sesion(cv_text)
                 logger.info(f"CV parseado sin Ollama: {len(cv_text)} caracteres")
             except Exception as parse_error:
                 logger.error(f"Error parseando CV: {str(parse_error)}")
@@ -1134,13 +1166,15 @@ def cv_bot_upload():
             
             return jsonify({
                 'message': message,
-                'analysis': analysis
+                'analysis': analysis,
+                'cv_cargado': True
             })
-        
+
         # Parsear CV
         try:
             cv_text = bot.parse_cv(file_bytes, filename)
             bot.cv_text = cv_text
+            guardar_cv_sesion(cv_text)
             logger.info(f"CV parseado exitosamente: {len(cv_text)} caracteres")
         except Exception as parse_error:
             logger.error(f"Error parseando CV: {str(parse_error)}")
@@ -1165,9 +1199,10 @@ def cv_bot_upload():
         
         return jsonify({
             'message': message,
-            'analysis': analysis
+            'analysis': analysis,
+            'cv_cargado': True
         })
-    
+
     except Exception as e:
         logger.error(f"Error en cv-bot upload: {str(e)}", exc_info=True)
         return jsonify({
@@ -1215,6 +1250,75 @@ def cv_bot_status():
         status["errors"].append(f"cv_bot: {str(e)}")
     
     return jsonify(status)
+
+
+@app.route('/api/cv-bot/optimizar', methods=['POST'])
+def cv_bot_optimizar():
+    """Reescribe el CV cargado y lo devuelve con formato ATS + vista previa"""
+    try:
+        from utils.cv_bot import get_cv_bot
+        from utils.cv_builder import generar_cv_optimizado
+    except ImportError as e:
+        logger.error(f"Error importando cv_builder: {str(e)}")
+        return jsonify({'error': f'Módulo no disponible: {str(e)}'}), 500
+
+    cv_text = obtener_cv_sesion()
+    if not cv_text:
+        return jsonify({'error': 'Primero sube tu CV con el botón 📎'}), 400
+
+    try:
+        data = request.get_json(silent=True) or {}
+        cargo_objetivo = (data.get('cargo') or '').strip()[:120]
+
+        resultado = generar_cv_optimizado(get_cv_bot(), cv_text, cargo_objetivo)
+
+        # El resultado se guarda para que la descarga no tenga que regenerarlo
+        cv_optimizados_por_sesion[_clave_cv_sesion()] = resultado['datos']
+
+        logger.info(f"CV optimizado en modo '{resultado['modo']}' (cargo: {cargo_objetivo or 'general'})")
+
+        return jsonify({
+            'preview_html': resultado['preview_html'],
+            'reglas': resultado['reglas'],
+            'modo': resultado['modo'],
+            'nombre': resultado['datos'].get('nombre', '')
+        })
+
+    except Exception as e:
+        logger.error(f"Error optimizando CV: {str(e)}", exc_info=True)
+        return jsonify({'error': f'No se pudo optimizar el CV: {str(e)}'}), 500
+
+
+@app.route('/api/cv-bot/descargar', methods=['GET'])
+def cv_bot_descargar():
+    """Descarga el CV optimizado en DOCX con el formato ATS aplicado"""
+    try:
+        from utils.cv_builder import construir_docx
+    except ImportError as e:
+        logger.error(f"Error importando cv_builder: {str(e)}")
+        return jsonify({'error': f'Módulo no disponible: {str(e)}'}), 500
+
+    datos = cv_optimizados_por_sesion.get(_clave_cv_sesion())
+    if not datos:
+        return jsonify({'error': 'Primero optimiza tu CV'}), 400
+
+    try:
+        docx_bytes = construir_docx(datos)
+
+        nombre = datos.get('nombre') or 'CV'
+        # Nombre de archivo limpio: los ATS a veces fallan con tildes y símbolos
+        slug = re.sub(r'[^A-Za-z0-9]+', '_', nombre).strip('_') or 'CV'
+
+        return send_file(
+            io.BytesIO(docx_bytes),
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=f'CV_{slug}_ATS.docx'
+        )
+
+    except Exception as e:
+        logger.error(f"Error generando DOCX: {str(e)}", exc_info=True)
+        return jsonify({'error': f'No se pudo generar el archivo: {str(e)}'}), 500
 
 
 @app.errorhandler(404)

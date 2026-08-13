@@ -135,7 +135,7 @@
 
         <!-- Menu de opciones -->
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <a href="{{ url_for('index') }}" class="text-decoration-none">
                     <div class="card h-100 border-primary">
                         <div class="card-body text-center">
@@ -146,7 +146,19 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <!-- Abre el asistente de CV directamente en el paso de subir archivo -->
+                <a href="#" id="abrirAsistenteCv" class="text-decoration-none">
+                    <div class="card h-100 border-warning">
+                        <div class="card-body text-center">
+                            <h1>✨</h1>
+                            <h5>Mejorar mi CV</h5>
+                            <p class="text-muted">Optimízalo para pasar los ATS</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
                 <a href="{{ url_for('user_credenciales') }}" class="text-decoration-none">
                     <div class="card h-100 border-success">
                         <div class="card-body text-center">
@@ -157,7 +169,7 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <a href="{{ url_for('edit_profile') }}" class="text-decoration-none">
                     <div class="card h-100 border-info">
                         <div class="card-body text-center">
@@ -259,8 +271,19 @@
                     <div class="message-content">
                         <p style="margin: 0 0 8px 0;"><strong>¡Hola! 👋 Soy tu asistente de CV</strong></p>
                         <p style="margin: 0; font-size: 13px;">📎 <strong>Sube tu CV</strong> (PDF/DOCX) para optimizarlo</p>
+                        <p style="margin: 6px 0 0 0; font-size: 13px;">✨ Luego pulsa <strong>Mejorar mi CV</strong> y te lo devuelvo reescrito y con formato para pasar los ATS</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Barra de optimización: se habilita cuando ya hay un CV cargado -->
+            <div class="cv-optimize-bar">
+                <input type="text" id="cvTargetRole" class="cv-target-input"
+                       placeholder="Cargo al que aplicas (opcional). Ej: Analista de Datos">
+                <button id="optimizeCvBtn" class="optimize-cv-btn" disabled
+                        title="Sube tu CV primero">
+                    ✨ Mejorar mi CV
+                </button>
             </div>
 
             <div class="cv-bot-input-area">
@@ -510,6 +533,79 @@
             margin: 4px 0;
         }
 
+        /* Barra de optimización de CV */
+        .cv-optimize-bar {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .cv-target-input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .cv-target-input:focus {
+            border-color: #667eea;
+        }
+
+        .optimize-cv-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .optimize-cv-btn:hover:not(:disabled) {
+            transform: scale(1.04);
+        }
+
+        .optimize-cv-btn:disabled {
+            background: #ced4da;
+            cursor: not-allowed;
+        }
+
+        /* Vista previa del CV generado dentro del chat */
+        .cv-preview-wrapper {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            max-height: 320px;
+            overflow-y: auto;
+            margin: 8px 0;
+        }
+
+        .download-cv-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .download-cv-btn:hover {
+            transform: scale(1.04);
+        }
+
         /* Input Area */
         .cv-bot-input-area {
             padding: 12px 15px;
@@ -613,6 +709,8 @@
             const cvBotMessages = document.getElementById('cvBotMessages');
             const uploadCvBtn = document.getElementById('uploadCvBtn');
             const cvFileInput = document.getElementById('cvFileInput');
+            const optimizeCvBtn = document.getElementById('optimizeCvBtn');
+            const cvTargetRole = document.getElementById('cvTargetRole');
             let currentCvFile = null;
 
             // Toggle modal
@@ -638,6 +736,22 @@
                 botModal.style.display = 'none';
                 botButton.classList.remove('modal-open');
             });
+
+            // La tarjeta "Mejorar mi CV" del dashboard abre el asistente y,
+            // si aún no hay CV cargado, lanza el selector de archivo.
+            const abrirAsistenteCv = document.getElementById('abrirAsistenteCv');
+            if (abrirAsistenteCv) {
+                abrirAsistenteCv.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    botModal.style.display = 'block';
+                    botButton.classList.add('modal-open');
+                    if (optimizeCvBtn.disabled) {
+                        cvFileInput.click();
+                    } else {
+                        cvTargetRole.focus();
+                    }
+                });
+            }
 
             // Upload CV
             uploadCvBtn.addEventListener('click', function() {
@@ -712,12 +826,78 @@
                     if (data.analysis) {
                         addBotMessage(formatAnalysis(data.analysis));
                     }
+                    // Habilitar la mejora solo cuando el backend confirmó que leyó el CV
+                    if (data.cv_cargado) {
+                        optimizeCvBtn.disabled = false;
+                        optimizeCvBtn.title = 'Reescribir y formatear tu CV';
+                    }
                 })
                 .catch(error => {
                     removeTypingIndicator();
                     addBotMessage('Error al subir el CV. Por favor intenta de nuevo.');
                     console.error('Error:', error);
                 });
+            }
+
+            // Optimizar CV: reescribe el contenido y aplica el formato ATS
+            optimizeCvBtn.addEventListener('click', function() {
+                const cargo = cvTargetRole.value.trim();
+
+                optimizeCvBtn.disabled = true;
+                optimizeCvBtn.textContent = '⏳ Mejorando...';
+                addUserMessage(cargo
+                    ? `✨ Mejorar mi CV para: ${cargo}`
+                    : '✨ Mejorar mi CV');
+                showTypingIndicator();
+
+                fetch('/api/cv-bot/optimizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cargo: cargo })
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data: data })))
+                .then(result => {
+                    removeTypingIndicator();
+                    if (!result.ok) {
+                        addBotMessage('⚠️ ' + (result.data.error || 'No se pudo optimizar el CV.'));
+                        return;
+                    }
+                    addBotMessage(buildOptimizedMessage(result.data));
+                })
+                .catch(error => {
+                    removeTypingIndicator();
+                    addBotMessage('Hubo un error al optimizar el CV. Intenta de nuevo.');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    optimizeCvBtn.disabled = false;
+                    optimizeCvBtn.textContent = '✨ Mejorar mi CV';
+                });
+            });
+
+            function buildOptimizedMessage(data) {
+                const aviso = data.modo === 'basico'
+                    ? '<p style="margin:0 0 8px; font-size:12px; color:#b8860b;">⚠️ Ollama no está disponible: se reorganizó y formateó tu CV, pero el texto no se reescribió con IA.</p>'
+                    : '<p style="margin:0 0 8px; font-size:12px; color:#11998e;">🤖 Reescrito con IA local (Ollama)</p>';
+
+                const reglas = (data.reglas || [])
+                    .map(r => `<li>${r}</li>`)
+                    .join('');
+
+                return `
+                    <div>
+                        <strong>✅ Tu CV optimizado está listo</strong>
+                        ${aviso}
+                        <div class="cv-preview-wrapper">${data.preview_html}</div>
+                        <details style="margin: 8px 0; font-size: 12px;">
+                            <summary style="cursor:pointer;"><strong>Formato aplicado</strong></summary>
+                            <ul style="margin:6px 0 0 16px; padding:0;">${reglas}</ul>
+                        </details>
+                        <a href="/api/cv-bot/descargar" class="download-cv-btn" download>
+                            ⬇️ Descargar DOCX
+                        </a>
+                    </div>
+                `;
             }
 
             // Helper functions

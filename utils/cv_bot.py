@@ -8,6 +8,7 @@ Análisis inteligente de CVs usando IA local
 import requests
 import json
 import io
+import os
 import re
 import logging
 from typing import Dict, List, Any
@@ -19,18 +20,53 @@ logger = logging.getLogger(__name__)
 class CVBotOllama:
     """Bot asistente para mejorar CVs usando Ollama"""
     
-    def __init__(self, ollama_url="http://localhost:11434", model="llama3.1"):
+    def __init__(self, ollama_url=None, model=None):
         """
         Inicializar bot CV
-        
+
         Args:
             ollama_url: URL de Ollama API
-            model: Modelo a usar (llama3.1, mistral, etc.)
+            model: Modelo a usar (llama3.1, qwen3, mistral, etc.)
         """
-        self.ollama_url = ollama_url
-        self.model = model
+        self.ollama_url = ollama_url or os.getenv('OLLAMA_URL', 'http://localhost:11434')
+        self.model = model or os.getenv('OLLAMA_MODEL')
         self.cv_text = None
-        
+        self._modelo_resuelto = None
+
+    def resolve_model(self) -> str:
+        """Modelo a usar, detectando uno instalado si no se configuró ninguno.
+
+        Evita fallar con "model not found" cuando la máquina tiene modelos
+        distintos al default.
+        """
+        if self.model:
+            return self.model
+        if self._modelo_resuelto:
+            return self._modelo_resuelto
+
+        try:
+            response = requests.get(f"{self.ollama_url}/api/tags", timeout=3)
+            modelos = [m['name'] for m in response.json().get('models', [])]
+            # Los modelos de embeddings no sirven para generar texto
+            candidatos = [m for m in modelos if 'embed' not in m.lower()]
+            if candidatos:
+                # Preferir un modelo generalista sobre uno especializado en código
+                generalistas = [m for m in candidatos if 'coder' not in m.lower()]
+                disponibles = generalistas or candidatos
+                # Orden de preferencia; si ninguno está, se usa el primero que haya
+                for preferido in ('llama3.1', 'llama3', 'qwen3', 'mistral'):
+                    coincide = [m for m in disponibles if m.lower().startswith(preferido)]
+                    if coincide:
+                        disponibles = coincide
+                        break
+                self._modelo_resuelto = disponibles[0]
+                logger.info(f"Modelo de Ollama detectado: {self._modelo_resuelto}")
+                return self._modelo_resuelto
+        except Exception as e:
+            logger.warning(f"No se pudo detectar el modelo de Ollama: {e}")
+
+        return 'llama3.1'
+
     def check_ollama_status(self) -> bool:
         """Verificar si Ollama está corriendo"""
         try:
@@ -279,18 +315,31 @@ Evita: Fotos, gráficos complejos, colores excesivos."""
 
 ¿En qué específicamente puedo ayudarte?"""
     
-    def call_ollama(self, prompt: str) -> str:
-        """Llamar a Ollama API"""
+    def call_ollama(self, prompt: str, fmt: str = None, options: dict = None) -> str:
+        """Llamar a Ollama API
+
+        Args:
+            prompt: Texto del prompt
+            fmt: "json" para forzar que el modelo responda JSON válido
+            options: Opciones del modelo (num_ctx, temperature, ...)
+        """
         url = f"{self.ollama_url}/api/generate"
-        
+
         payload = {
-            "model": self.model,
+            "model": self.resolve_model(),
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            # Los modelos de razonamiento (qwen3, deepseek-r1) mezclan su
+            # cadena de pensamiento con la respuesta y rompen el parseo JSON.
+            "think": False
         }
-        
+        if fmt:
+            payload["format"] = fmt
+        if options:
+            payload["options"] = options
+
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            response = requests.post(url, json=payload, timeout=180)
             response.raise_for_status()
             return response.json()['response']
         except requests.exceptions.ConnectionError:
