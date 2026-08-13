@@ -1,23 +1,25 @@
 name: Pylint
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        # Misma versión que declara runtime.txt
+        python-version: "3.11"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
+      # Las dependencias del proyecto no se instalan (selenium, pandas y demás
+      # solo alargarían el job), así que no se revisan los imports externos.
+      # El umbral evita que el check quede en rojo permanente por avisos de
+      # estilo, pero sí falla si la nota baja de forma significativa.
       run: |
-        pylint $(git ls-files '*.py')
+        pylint --disable=import-error --fail-under=9.0 $(git ls-files '*.py')

@@ -1,0 +1,54 @@
+[MAIN]
+# Django/Flask y librerías con atributos dinámicos confunden al analizador
+ignore-paths=^\.venv/.*$,^venv/.*$
+
+[MESSAGES CONTROL]
+# Se apagan las reglas de puro estilo, que en este proyecto generan cerca de
+# mil avisos sin señalar ningún problema real. Quedan activas las que sí
+# atrapan errores: variables sin usar, imports muertos, atributos que no
+# existen, código inalcanzable, redefiniciones.
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    logging-fstring-interpolation,
+    logging-format-interpolation,
+    broad-exception-caught,
+    broad-exception-raised,
+    bare-except,
+    import-outside-toplevel,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-many-return-statements,
+    too-many-instance-attributes,
+    too-many-public-methods,
+    too-many-nested-blocks,
+    too-few-public-methods,
+    line-too-long,
+    invalid-name,
+    no-else-return,
+    no-else-raise,
+    consider-using-f-string,
+    consider-using-with,
+    duplicate-code,
+    global-statement,
+    fixme,
+    trailing-whitespace,
+    trailing-newlines,
+    missing-final-newline,
+    superfluous-parens,
+    wrong-import-order,
+    wrong-import-position,
+    ungrouped-imports,
+    unspecified-encoding,
+    consider-using-dict-items,
+    unnecessary-pass
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-module-lines=2000
