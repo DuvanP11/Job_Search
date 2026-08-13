@@ -10,6 +10,7 @@ import hashlib
 import secrets
 from datetime import datetime
 import os
+import tempfile
 import logging
 
 # PostgreSQL imports
@@ -305,27 +306,38 @@ class Database:
     def __init__(self, data_dir='data'):
         """Inicializar base de datos JSON"""
         self.data_dir = data_dir
-        
-        # Crear directorio si no existe
-        os.makedirs(self.data_dir, exist_ok=True)
-        
+
+        # En entornos serverless el directorio del proyecto es de solo lectura.
+        # Se cae a /tmp, que sí acepta escrituras, para que la aplicación al
+        # menos arranque y pueda mostrar el aviso de que falta DATABASE_URL,
+        # en lugar de reventar al importarse.
+        try:
+            os.makedirs(self.data_dir, exist_ok=True)
+        except OSError as e:
+            respaldo = os.path.join(tempfile.gettempdir(), 'job_search_data')
+            logger.error(f"⚠️ No se pudo usar '{data_dir}' ({e}). Usando {respaldo}")
+            logger.error("   Los datos se perderán entre peticiones: configura DATABASE_URL.")
+            self.data_dir = respaldo
+            os.makedirs(self.data_dir, exist_ok=True)
+
         # Archivos de datos
         self.users_file = os.path.join(self.data_dir, 'users.json')
         self.credentials_file = os.path.join(self.data_dir, 'user_credentials.json')
-        
+
         # Inicializar archivos si no existen
         self._init_files()
         logger.info("✅ Base de datos JSON inicializada")
-    
+
     def _init_files(self):
         """Inicializar archivos JSON si no existen"""
-        if not os.path.exists(self.users_file):
-            with open(self.users_file, 'w') as f:
-                json.dump({}, f)
-        
-        if not os.path.exists(self.credentials_file):
-            with open(self.credentials_file, 'w') as f:
-                json.dump({}, f)
+        for ruta in (self.users_file, self.credentials_file):
+            if os.path.exists(ruta):
+                continue
+            try:
+                with open(ruta, 'w', encoding='utf-8') as f:
+                    json.dump({}, f)
+            except OSError as e:
+                logger.error(f"⚠️ No se pudo crear {ruta}: {e}")
     
     def _load_users(self):
         """Cargar usuarios desde JSON"""

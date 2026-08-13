@@ -1,18 +1,24 @@
 Flask==3.0.0
 requests==2.31.0
 beautifulsoup4==4.12.2
-pandas==2.2.0
 openpyxl==3.1.2
-lxml==4.9.4
 gunicorn==21.2.0
 Werkzeug==3.0.1
-selenium==4.16.0
 cryptography==41.0.7
 
-# PostgreSQL
-psycopg2-binary==2.9.9
+# psycopg2 se deja sin fijar a una versión exacta a propósito: las versiones
+# antiguas no publican wheels para los Python recientes y el build fallaría al
+# intentar compilarlas desde el código fuente.
+psycopg2-binary>=2.9.10
 SQLAlchemy==2.0.23
 
 # Bot CV con Ollama
 PyPDF2==3.0.1
 python-docx==1.1.0
+
+# Fuera del despliegue serverless:
+# - pandas: solo se usaba para exportar Excel y calcular estadísticas; ahora
+#   eso lo hacen openpyxl y collections.Counter. Pesaba demasiado para el
+#   límite de tamaño de una función.
+# - selenium: utils/selenium_scraper.py no lo importa nadie y en serverless no
+#   hay navegador. Para usarlo en local: pip install selenium==4.16.0
