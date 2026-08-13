@@ -373,7 +373,10 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             z-index: 1050;
             display: grid;
-            grid-template-rows: auto minmax(0, 1fr) auto;
+            /* Cuatro filas: cabecera, mensajes, barra de optimización y campo
+               de texto. Con tres, la barra caía en una fila implícita y el
+               overflow hidden del modal la recortaba. */
+            grid-template-rows: auto minmax(0, 1fr) auto auto;
             overflow: hidden;
             animation: slideUp 0.3s ease-out;
             border: 2px solid #667eea;
@@ -441,7 +444,10 @@
             overflow-y: scroll !important;
             overflow-x: hidden;
             background: #f8f9fa;
-            min-height: 300px;
+            /* min-height 0 para que la fila 1fr pueda encogerse: con un mínimo
+               fijo, en pantallas bajas empujaba la barra de optimización fuera
+               del modal. */
+            min-height: 0;
             max-height: 100%;
             height: 100%;
         }
@@ -577,6 +583,17 @@
         .optimize-cv-btn:disabled {
             background: #ced4da;
             cursor: not-allowed;
+        }
+
+        /* Late unos segundos al habilitarse, para que se note que ahí sigue
+           el paso que falta */
+        .optimize-cv-btn.resaltado {
+            animation: latido-boton 1.2s ease-in-out 4;
+        }
+
+        @keyframes latido-boton {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 153, 142, 0.6); }
+            50% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(17, 153, 142, 0); }
         }
 
         /* Vista previa del CV generado dentro del chat */
@@ -830,6 +847,17 @@
                     if (data.cv_cargado) {
                         optimizeCvBtn.disabled = false;
                         optimizeCvBtn.title = 'Reescribir y formatear tu CV';
+                        // Subir el CV solo lo analiza. Se indica de forma
+                        // explícita que falta un paso, y se resalta el botón.
+                        addBotMessage(
+                            '<strong>👇 Falta un paso</strong>' +
+                            '<p style="margin:6px 0 0; font-size:13px;">Esto fue solo el análisis. ' +
+                            'Para recibir tu CV <strong>reescrito y con formato ATS</strong>, pulsa ' +
+                            '<strong>✨ Mejorar mi CV</strong> aquí abajo.</p>' +
+                            '<p style="margin:6px 0 0; font-size:12px; color:#6c757d;">Opcional: escribe primero ' +
+                            'el cargo al que aplicas para que priorice lo relevante.</p>'
+                        );
+                        optimizeCvBtn.classList.add('resaltado');
                     }
                 })
                 .catch(error => {
@@ -843,6 +871,7 @@
             optimizeCvBtn.addEventListener('click', function() {
                 const cargo = cvTargetRole.value.trim();
 
+                optimizeCvBtn.classList.remove('resaltado');
                 optimizeCvBtn.disabled = true;
                 optimizeCvBtn.textContent = '⏳ Mejorando...';
                 addUserMessage(cargo
