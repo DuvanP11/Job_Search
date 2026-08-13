@@ -115,6 +115,23 @@ FLASK_ENV=development .venv/bin/python app.py
 
 Abre http://localhost:5000
 
+## Problemas conocidos del build
+
+### `The Python request from .python-version resolved to Python 3.11.9, which is incompatible with ==3.12.*`
+
+Vercel construye con Python 3.12, pero el repositorio trae un `.python-version`
+con `3.11.9` para el entorno local y para Railway. `uv` lo lee y aborta.
+
+Ya está resuelto: `.python-version` figura en `.vercelignore`, así que no llega
+al build. Si el error reaparece, comprueba que esa línea sigue ahí.
+
+### Las páginas responden 404
+
+Puede pasar si se añade un `rewrite` de `/(.*)` hacia `/app.py` en
+`vercel.json`. El preset **Flask** ya enruta todas las peticiones al módulo, y
+el rewrite haría que Flask reciba la ruta `/app.py` en lugar de la original. El
+`vercel.json` del repositorio solo define `maxDuration` y `memory` por eso.
+
 ## Otros proveedores
 
 El repositorio conserva `Procfile`, `nixpacks.toml` y `runtime.txt`, así que
