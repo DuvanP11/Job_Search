@@ -37,6 +37,20 @@ if ! curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
     exit 1
 fi
 
+# Si el puerto ya está ocupado, el proxy nuevo muere al arrancar y el túnel
+# acabaría apuntando a un proceso viejo, con otro token: las credenciales que
+# imprime este script no servirían.
+if OCUPANTE="$(lsof -ti:"$PUERTO" 2>/dev/null)" && [ -n "$OCUPANTE" ]; then
+    echo "❌ El puerto $PUERTO ya está ocupado por el proceso $OCUPANTE."
+    echo
+    echo "   Seguramente quedó un proxy de una ejecución anterior. Ciérralo con:"
+    echo "       kill $OCUPANTE"
+    echo
+    echo "   O usa otro puerto:"
+    echo "       PROXY_PORT=11436 $0"
+    exit 1
+fi
+
 if [ -z "${OLLAMA_TOKEN:-}" ]; then
     OLLAMA_TOKEN="$("$PYTHON" -c 'import secrets; print(secrets.token_hex(32))')"
     export OLLAMA_TOKEN
@@ -57,9 +71,34 @@ trap limpiar EXIT INT TERM
 
 echo "▶️  Arrancando el proxy autenticado en el puerto $PUERTO..."
 "$PYTHON" "$RAIZ/scripts/ollama_proxy.py" &
+PROXY_PID=$!
 
-sleep 2
+# El proxy tiene que responder con el token recién generado antes de seguir.
+# Sin esta comprobación, un fallo al arrancar pasaba desapercibido y el script
+# terminaba anunciando una URL y un token que no funcionaban.
+PROXY_LISTO=""
+for _ in $(seq 1 15); do
+    if ! kill -0 "$PROXY_PID" 2>/dev/null; then
+        echo "❌ El proxy se cerró nada más arrancar. Revisa el error de arriba."
+        exit 1
+    fi
+    CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 \
+        -H "Authorization: Bearer $OLLAMA_TOKEN" \
+        "http://localhost:$PUERTO/api/tags" || true)"
+    if [ "$CODIGO" = "200" ]; then
+        PROXY_LISTO="si"
+        break
+    fi
+    sleep 1
+done
 
+if [ -z "$PROXY_LISTO" ]; then
+    echo "❌ El proxy no respondió correctamente en el puerto $PUERTO."
+    echo "   Si otro proceso lo está usando, ciérralo o prueba con PROXY_PORT=11436."
+    exit 1
+fi
+
+echo "✅ Proxy respondiendo con el token generado."
 echo "▶️  Abriendo el túnel de Cloudflare..."
 "$CLOUDFLARED" tunnel --url "http://localhost:$PUERTO" --no-autoupdate > "$REGISTRO" 2>&1 &
 
