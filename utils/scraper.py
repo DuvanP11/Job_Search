@@ -910,3 +910,59 @@ class BuscadorEmpleos:
             return 0
         scores = [o.get('score', 0) for o in self.ofertas_encontradas]
         return round(sum(scores) / len(scores), 2)
+
+# === WRAPPERS PARA AUTOAPPLY ===
+def buscar_empleos_computrabajo(cargo="", ciudad="", cantidad=40, **kwargs):
+    try:
+        config = {"resultados_por_portal": int(cantidad)}
+        keywords = {"incluir": [cargo] if cargo else [], "excluir": [], "bonus": []}
+        portales = {"computrabajo": True, "elempleo": False, "magneto": False, "indeed": False,
+                   "trabajando": False, "linkedin": False, "serviciodeempleo": False,
+                   "talentbox": False, "colsubsidio": False, "unmejorempleo": False}
+        buscador = BuscadorEmpleos(config, keywords, portales)
+        buscador.buscar_computrabajo(cargo or "", ciudad or "")
+        ofertas = []
+        for o in getattr(buscador, "ofertas_encontradas", []) or []:
+            if not isinstance(o, dict):
+                continue
+            ofertas.append({
+                "titulo": o.get("titulo") or o.get("title") or "",
+                "empresa": o.get("empresa") or o.get("company") or "No especificada",
+                "ubicacion": o.get("ubicacion") or o.get("location") or ciudad or "",
+                "descripcion": o.get("descripcion") or o.get("description") or o.get("requisitos") or "",
+                "url": o.get("url") or o.get("link") or o.get("enlace") or "",
+                "portal": "computrabajo",
+                "fecha_publicacion": o.get("fecha") or o.get("fecha_publicacion") or o.get("publicado"),
+            })
+        return ofertas
+    except Exception as e:
+        logger.error(f"Error wrapper computrabajo: {e}")
+        return []
+
+
+def buscar_empleos_elempleo(cargo="", ciudad="", cantidad=40, **kwargs):
+    try:
+        config = {"resultados_por_portal": int(cantidad)}
+        keywords = {"incluir": [cargo] if cargo else [], "excluir": [], "bonus": []}
+        portales = {"computrabajo": False, "elempleo": True, "magneto": False, "indeed": False,
+                   "trabajando": False, "linkedin": False, "serviciodeempleo": False,
+                   "talentbox": False, "colsubsidio": False, "unmejorempleo": False}
+        buscador = BuscadorEmpleos(config, keywords, portales)
+        buscador.buscar_elempleo(cargo or "", ciudad or "")
+        ofertas = []
+        for o in getattr(buscador, "ofertas_encontradas", []) or []:
+            if not isinstance(o, dict):
+                continue
+            ofertas.append({
+                "titulo": o.get("titulo") or o.get("title") or "",
+                "empresa": o.get("empresa") or o.get("company") or "No especificada",
+                "ubicacion": o.get("ubicacion") or o.get("location") or ciudad or "",
+                "descripcion": o.get("descripcion") or o.get("description") or o.get("requisitos") or "",
+                "url": o.get("url") or o.get("link") or o.get("enlace") or "",
+                "portal": "elempleo",
+                "fecha_publicacion": o.get("fecha") or o.get("fecha_publicacion") or o.get("publicado"),
+            })
+        return ofertas
+    except Exception as e:
+        logger.error(f"Error wrapper elempleo: {e}")
+        return []
