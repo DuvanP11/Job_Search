@@ -6,6 +6,8 @@ Almacena credenciales de portales de forma segura y encriptada
 """
 
 from cryptography.fernet import Fernet
+import base64
+import hashlib
 import json
 import os
 import logging
@@ -22,14 +24,35 @@ class CredentialManager:
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
         
-        # Directorio para credenciales
+        # Directorio para credenciales (solo se crea cuando se necesita:
+        # en Vercel el disco es de solo lectura y crearlo al importar
+        # tumbaba la app entera)
         self.creds_dir = os.path.join(os.path.dirname(__file__), '..', 'credentials')
-        os.makedirs(self.creds_dir, exist_ok=True)
         
         logger.info("✅ CredentialManager inicializado")
     
     def _get_or_create_key(self):
-        """Obtener o crear clave de encriptación"""
+        """Obtener la clave de encriptación.
+        
+        Orden: CREDENTIALS_KEY (una clave Fernet) -> derivada de SECRET_KEY
+        -> archivo .encryption_key (solo desarrollo local). En serverless la
+        clave TIENE que venir del entorno: un archivo no sobrevive entre
+        instancias y las contraseñas guardadas quedarían imposibles de leer.
+        """
+        env_key = os.getenv('CREDENTIALS_KEY')
+        if env_key:
+            return env_key.encode()
+        
+        secret = os.getenv('SECRET_KEY')
+        if secret:
+            digest = hashlib.sha256(('credentials:' + secret).encode()).digest()
+            return base64.urlsafe_b64encode(digest)
+        
+        if os.getenv('VERCEL'):
+            raise RuntimeError(
+                "Falta CREDENTIALS_KEY (o SECRET_KEY) en las variables de entorno de Vercel"
+            )
+        
         key_file = os.path.join(os.path.dirname(__file__), '..', '.encryption_key')
         
         # Si existe, leer
@@ -70,6 +93,7 @@ class CredentialManager:
             }
             
             # Guardar en archivo JSON
+            os.makedirs(self.creds_dir, exist_ok=True)
             cred_file = os.path.join(self.creds_dir, f'{portal}.json')
             with open(cred_file, 'w') as f:
                 json.dump(credentials, f, indent=2)
@@ -128,6 +152,8 @@ class CredentialManager:
             list: Lista de portales configurados
         """
         try:
+            if not os.path.isdir(self.creds_dir):
+                return []
             files = os.listdir(self.creds_dir)
             portales = []
             
