@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de búsqueda - Aplicar automáticamente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('autoapply.index') }}"><i class="fas fa-robot"></i> Aplicar automáticamente</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('autoapply.index') }}"><i class="fas fa-arrow-left"></i> Volver</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h2><i class="fas fa-sliders-h"></i> Configurar perfil de búsqueda</h2>
+        <p class="text-muted">Define cargos, ubicación, filtros y portales. Los datos se guardan por usuario.</p>
+
+        <form method="POST">
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">General</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre del perfil</label>
+                            <input type="text" class="form-control" name="nombre_perfil" value="{{ config.nombre or 'Perfil principal' }}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Puntuación mínima</label>
+                            <input type="number" class="form-control" name="puntuacion_minima" value="{{ config.puntuacion_minima or 60 }}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Máx. postulaciones/día</label>
+                            <input type="number" class="form-control" name="max_postulaciones_diarias" value="{{ config.max_postulaciones_diarias or 5 }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Cargos y palabras clave</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cargos objetivo (uno por línea)</label>
+                            <textarea class="form-control" name="cargos" rows="5">{{ config.cargos|join('\n') if config.cargos else '' }}</textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sinónimos (uno por línea)</label>
+                            <textarea class="form-control" name="sinonimos" rows="5">{{ config.sinonimos|join('\n') if config.sinonimos else '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Palabras obligatorias (una por línea)</label>
+                            <textarea class="form-control" name="keywords_obligatorias" rows="4">{{ config.keywords_obligatorias|join('\n') if config.keywords_obligatorias else '' }}</textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Palabras excluyentes (una por línea)</label>
+                            <textarea class="form-control" name="keywords_excluyentes" rows="4">{{ config.keywords_excluyentes|join('\n') if config.keywords_excluyentes else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Ubicación y filtros</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" name="ciudad" value="{{ config.ciudad or '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Departamento</label>
+                            <input type="text" class="form-control" name="departamento" value="{{ config.departamento or '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">País</label>
+                            <input type="text" class="form-control" name="pais" value="{{ config.pais or 'Colombia' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Modalidad</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="modalidades" value="presencial" id="presencial" {% if 'presencial' in config.modalidades %}checked{% endif %}>
+                            <label class="form-check-label" for="presencial">Presencial</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="modalidades" value="hibrida" id="hibrida" {% if 'hibrida' in config.modalidades %}checked{% endif %}>
+                            <label class="form-check-label" for="hibrida">Híbrida</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="modalidades" value="remota" id="remota" {% if 'remota' in config.modalidades %}checked{% endif %}>
+                            <label class="form-check-label" for="remota">Remota</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Salario mínimo</label>
+                            <input type="number" class="form-control" name="salario_minimo" value="{{ config.salario_minimo or 0 }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Días desde publicación</label>
+                            <input type="number" class="form-control" name="fecha_publicacion_dias" value="{{ config.fecha_publicacion_dias or 30 }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Resultados por cargo</label>
+                            <input type="number" class="form-control" name="resultados_por_cargo" value="{{ config.resultados_por_cargo or 20 }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Empresas excluidas (una por línea)</label>
+                        <textarea class="form-control" name="empresas_excluidas" rows="3">{{ config.empresas_excluidas|join('\n') if config.empresas_excluidas else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Portales</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for clave, info in portales_soportados.items() %}
+                        <div class="col-md-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="portales" value="{{ clave }}" id="portal_{{ clave }}" {% if clave in config.portales %}checked{% endif %}>
+                                <label class="form-check-label" for="portal_{{ clave }}">
+                                    <strong>{{ info.nombre }}</strong> - {{ info.nota }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Greenhouse boards (uno por línea)</label>
+                            <textarea class="form-control" name="greenhouse_boards" rows="3">{{ config.greenhouse_boards|join('\n') if config.greenhouse_boards else '' }}</textarea>
+                            <small class="text-muted">Ej: stripe, airbnb</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Lever companies (uno por línea)</label>
+                            <textarea class="form-control" name="lever_companies" rows="3">{{ config.lever_companies|join('\n') if config.lever_companies else '' }}</textarea>
+                            <small class="text-muted">Ej: notion, figma</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Horario</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Desde</label>
+                            <input type="time" class="form-control" name="desde" value="{{ config.horario.desde if config.horario else '08:00' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Hasta</label>
+                            <input type="time" class="form-control" name="hasta" value="{{ config.horario.hasta if config.horario else '18:00' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Días</label>
+                            <select class="form-select" name="dias" multiple>
+                                <option value="0" {% if config.horario and 0 in config.horario.dias %}selected{% endif %}>Lunes</option>
+                                <option value="1" {% if config.horario and 1 in config.horario.dias %}selected{% endif %}>Martes</option>
+                                <option value="2" {% if config.horario and 2 in config.horario.dias %}selected{% endif %}>Miércoles</option>
+                                <option value="3" {% if config.horario and 3 in config.horario.dias %}selected{% endif %}>Jueves</option>
+                                <option value="4" {% if config.horario and 4 in config.horario.dias %}selected{% endif %}>Viernes</option>
+                                <option value="5" {% if config.horario and 5 in config.horario.dias %}selected{% endif %}>Sábado</option>
+                                <option value="6" {% if config.horario and 6 in config.horario.dias %}selected{% endif %}>Domingo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg mb-4"><i class="fas fa-save"></i> Guardar perfil</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

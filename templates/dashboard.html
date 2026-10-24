@@ -101,7 +101,16 @@
                 <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Logo" style="height: 40px; width: 40px; margin-right: 10px; vertical-align: middle;">
                 Portal de Empleos
             </a>
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto align-items-center">
+                <a class="nav-link text-white me-2" href="/">
+                    <i class="fas fa-search"></i> Buscar
+                </a>
+                <a class="nav-link text-white me-2" href="{{ url_for('autoapply.index') }}">
+                    <i class="fas fa-robot"></i> Aplicar automáticamente
+                </a>
+                <a class="nav-link text-white me-2" href="/user/credenciales">
+                    <i class="fas fa-key"></i> Mis Credenciales
+                </a>
                 <span class="navbar-text me-3">
                     {{ avatar_emoji }} {{ user.username }}
                 </span>

@@ -18,8 +18,10 @@ import string
 import json
 from utils.scraper import BuscadorEmpleos
 from utils.kv_store import get_kv_store
+from autoapply import autoapply_bp
 
 app = Flask(__name__)
+app.register_blueprint(autoapply_bp)
 
 # La clave firma las cookies de sesión: si se conoce, se pueden falsificar
 # sesiones de cualquier usuario. Por eso se lee del entorno.

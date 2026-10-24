@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil profesional - Aplicar automáticamente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('autoapply.index') }}"><i class="fas fa-robot"></i> Aplicar automáticamente</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('autoapply.index') }}"><i class="fas fa-arrow-left"></i> Volver</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2><i class="fas fa-user"></i> Perfil profesional</h2>
+        <p class="text-muted">Esta información se usa para evaluar ofertas y preparar postulaciones.</p>
+
+        <form method="POST">
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Datos personales</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" name="nombre_completo" value="{{ candidato.nombre_completo or '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ candidato.email or '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" name="telefono" value="{{ candidato.telefono or '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" name="ciudad" value="{{ candidato.ciudad or '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">LinkedIn</label>
+                            <input type="text" class="form-control" name="linkedin" value="{{ candidato.linkedin or '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Profesional</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Titular profesional</label>
+                        <input type="text" class="form-control" name="titular" value="{{ candidato.titular or '' }}" placeholder="Ej: Desarrollador Backend | Python | SQL">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Resumen</label>
+                        <textarea class="form-control" name="resumen" rows="4">{{ candidato.resumen or '' }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Años de experiencia</label>
+                            <input type="number" class="form-control" name="anios_experiencia" value="{{ candidato.anios_experiencia or 0 }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Aspiración salarial (COP)</label>
+                            <input type="number" class="form-control" name="aspiracion_salarial" value="{{ candidato.aspiracion_salarial or 0 }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Habilidades (separadas por coma)</label>
+                            <input type="text" class="form-control" name="habilidades" value="{{ candidato.habilidades|join(', ') if candidato.habilidades else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg mb-4"><i class="fas fa-save"></i> Guardar perfil profesional</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

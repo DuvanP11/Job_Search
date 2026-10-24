@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV - Aplicar automáticamente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('autoapply.index') }}"><i class="fas fa-robot"></i> Aplicar automáticamente</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('autoapply.index') }}"><i class="fas fa-arrow-left"></i> Volver</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2><i class="fas fa-file-alt"></i> CV para postulación</h2>
+        <p class="text-muted">Guarda el texto de tu CV. Se usa para preparar la información al postular.</p>
+
+        <form method="POST">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de archivo (opcional)</label>
+                        <input type="text" class="form-control" name="nombre_archivo" value="{{ cv.nombre_archivo or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Texto del CV</label>
+                        <textarea class="form-control" name="cv_texto" rows="20" placeholder="Pega aquí el contenido de tu CV...">{{ cv.texto or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg mb-4"><i class="fas fa-save"></i> Guardar CV</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
