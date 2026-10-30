@@ -55,9 +55,10 @@ class AutoApplyRunner:
         except Exception:
             pass
 
-        hoy = datetime.now(timezone.utc).date()
         estadisticas = self.engine.estadisticas(user_id)
-        ya_hoy = estadisticas.get('postuladas', 0)
+        # Solo cuentan las de hoy: 'postuladas' es el histórico completo y
+        # bloqueaba todo al llegar al tope configurado.
+        ya_hoy = int(estadisticas.get('postuladas_hoy', 0))
 
         for oferta in pendientes:
             if ya_hoy >= max_diario:

@@ -136,10 +136,29 @@ class AutoApplyEngine:
             por_estado[e] = por_estado.get(e, 0) + 1
             p = oferta.get('portal', 'otro')
             por_portal[p] = por_portal.get(p, 0) + 1
-        postuladas = sum(por_estado.get(e, 0) for e in ['enviada_sin_confirmacion', 'postulacion_confirmada'])
+        estados_postulado = ['enviada_sin_confirmacion', 'postulacion_confirmada']
+        postuladas = sum(por_estado.get(e, 0) for e in estados_postulado)
+
+        # Postulaciones de hoy (UTC), leídas del historial de cada oferta.
+        hoy = datetime.now(timezone.utc).date()
+        postuladas_hoy = 0
+        for oferta in ofertas:
+            if oferta.get('status') not in estados_postulado:
+                continue
+            historial = oferta.get('historial_cambios') or []
+            marcas = [h.get('fecha') for h in historial
+                      if h.get('estado') in estados_postulado and h.get('fecha')]
+            marca = marcas[-1] if marcas else oferta.get('updated_at')
+            try:
+                if marca and datetime.fromisoformat(str(marca).replace('Z', '+00:00')).date() == hoy:
+                    postuladas_hoy += 1
+            except (TypeError, ValueError):
+                continue
+
         return {
             'total': total,
             'postuladas': postuladas,
+            'postuladas_hoy': postuladas_hoy,
             'pendientes': por_estado.get('pendiente_revision', 0) + por_estado.get('lista_para_postular', 0),
             'descartadas': por_estado.get('descartada', 0),
             'por_estado': por_estado,

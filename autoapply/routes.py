@@ -27,7 +27,9 @@ autoapply_bp = Blueprint('autoapply', __name__, url_prefix='/autoaplicar',
 
 
 def _user_id():
-    return session.get('user_id') or session.get('usuario_id') or 1
+    # Nunca caer a un id fijo: eso hacía que, sin sesión válida, se leyera y
+    # escribiera sobre la cuenta del usuario 1 (datos de otra persona).
+    return session.get('user_id') or session.get('usuario_id')
 
 
 def _requiere_login(f):
@@ -284,6 +286,35 @@ def api_estado():
     user_id = _user_id()
     engine = AutoApplyEngine(store)
     return jsonify(engine.estadisticas(user_id))
+
+
+@autoapply_bp.route('/diagnostico')
+@_requiere_login
+def diagnostico():
+    """Muestra dónde se guarda realmente: motor, base, cuenta y marcas de tiempo."""
+    store = get_store()
+    user_id = _user_id()
+    pg = getattr(store, '_pg', None)
+    motor = 'PostgreSQL' if pg is not None else 'JSON local (se pierde al reiniciar)'
+    destino = '—'
+    if pg is not None:
+        url = pg.engine.url
+        destino = f"{url.host or 'local'}:{url.port or ''}/{url.database or ''}"
+    registros = {}
+    for coleccion, record_id in (('profiles', 'default'),
+                                 ('candidate', 'principal'),
+                                 ('cv', 'principal')):
+        doc = store.get(coleccion, user_id, record_id) or {}
+        registros[coleccion] = {
+            'encontrado': bool(doc),
+            'updated_at': doc.get('updated_at') or '—',
+            'detalle': (f"{len(doc.get('texto') or '')} caracteres de CV"
+                        if coleccion == 'cv' else doc.get('nombre_completo') or doc.get('nombre') or ''),
+        }
+    return render_template('autoapply_diagnostico.html',
+                           motor=motor, destino=destino,
+                           user_id=user_id, registros=registros,
+                           persistente=store.persistente)
 
 
 @autoapply_bp.route('/api/descubrir', methods=['POST'])

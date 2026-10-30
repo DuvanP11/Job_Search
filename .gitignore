@@ -3,6 +3,11 @@ credentials/
 .encryption_key
 *.key
 
+# Datos de usuarios y credenciales de portales (nunca versionar)
+data/*.json
+data/autoapply/
+!data/.gitkeep
+
 # Python
 __pycache__/
 *.py[cod]
