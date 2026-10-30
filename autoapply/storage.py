@@ -168,8 +168,8 @@ class _Postgres:
 
     def __init__(self, engine):
         from sqlalchemy import (
-            JSON, Column, DateTime, MetaData, String, Table, UniqueConstraint,
-            select,
+            JSON, Column, DateTime, MetaData, PrimaryKeyConstraint, String,
+            Table, UniqueConstraint, select,
         )
 
         self._select = select
@@ -177,18 +177,53 @@ class _Postgres:
         metadata = MetaData()
         self.tabla = Table(
             TABLA, metadata,
-            Column('collection', String(40), primary_key=True),
-            Column('record_id', String(64), primary_key=True),
             Column('owner_id', String(80), nullable=False, index=True),
+            Column('collection', String(40), nullable=False),
+            Column('record_id', String(64), nullable=False),
             Column('fingerprint', String(128), nullable=True, index=True),
             Column('status', String(40), nullable=True, index=True),
             Column('data', JSON, nullable=False),
             Column('created_at', DateTime(timezone=True), nullable=False),
             Column('updated_at', DateTime(timezone=True), nullable=False),
+            # owner_id va en la clave: sin él solo podía existir un
+            # 'profiles/default' en toda la tabla y el resto de usuarios
+            # recibía un error de duplicado que se confundía con "guardado".
+            PrimaryKeyConstraint('owner_id', 'collection', 'record_id',
+                                 name='pk_autoapply_records'),
             UniqueConstraint('owner_id', 'collection', 'fingerprint',
                              name='uq_autoapply_owner_fingerprint'),
         )
         metadata.create_all(self.engine)
+        self.migrar(engine)
+
+    def migrar(self, engine) -> None:
+        """Corrige la clave primaria de tablas creadas por versiones previas.
+
+        Idempotente: si la tabla ya tiene la clave correcta no hace nada.
+        """
+        from sqlalchemy import inspect, text
+
+        try:
+            inspector = inspect(engine)
+            if not inspector.has_table(TABLA):
+                return
+            clave = inspector.get_pk_constraint(TABLA) or {}
+            columnas = set(clave.get('constrained_columns') or [])
+            if columnas == {'owner_id', 'collection', 'record_id'}:
+                return
+            nombre = clave.get('name') or f'{TABLA}_pkey'
+            logger.warning('AutoApply: migrando clave primaria de %s (era %s)',
+                           TABLA, sorted(columnas))
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE {TABLA} DROP CONSTRAINT IF EXISTS "{nombre}"'))
+                conn.execute(text(
+                    f'ALTER TABLE {TABLA} ADD CONSTRAINT pk_autoapply_records '
+                    f'PRIMARY KEY (owner_id, collection, record_id)'
+                ))
+            logger.info('AutoApply: clave primaria de %s corregida', TABLA)
+        except Exception as exc:  # noqa: BLE001 - se avisa y se sigue
+            logger.error('AutoApply: no se pudo migrar la clave primaria de %s: %s',
+                         TABLA, exc)
 
     def _fila(self, fila) -> Optional[Dict]:
         if not fila:
@@ -247,7 +282,7 @@ class _Postgres:
                 if existente:
                     return existente, False
             with self.engine.begin() as conn:
-                conn.execute(update(self.tabla).where(
+                resultado = conn.execute(update(self.tabla).where(
                     self.tabla.c.owner_id == str(owner_id),
                     self.tabla.c.collection == collection,
                     self.tabla.c.record_id == record['id'],
@@ -257,6 +292,13 @@ class _Postgres:
                     data=record,
                     updated_at=datetime.fromisoformat(record['updated_at']),
                 ))
+            if not resultado.rowcount:
+                # Antes se devolvía "guardado" aunque no se hubiera escrito
+                # nada: el INSERT fallaba por clave duplicada y el UPDATE
+                # no encontraba la fila de este usuario.
+                raise RuntimeError(
+                    f'No se pudo guardar {collection}/{record["id"]} del usuario {owner_id}'
+                )
             return record, True
 
     def find_by_fingerprint(self, owner_id: Any, collection: str, fingerprint: str) -> Optional[Dict]:
