@@ -70,13 +70,7 @@ if not EN_VERCEL:
     logger.info(f"🔍 DATA EXISTS: {os.path.exists('data')}")
     if os.path.exists('data'):
         logger.info(f"🔍 DATA FILES: {os.listdir('data')}")
-        users_file = 'data/users.json'
-        if os.path.exists(users_file):
-            size = os.path.getsize(users_file)
-            logger.info(f"🔍 USERS FILE SIZE: {size} bytes")
-            with open(users_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                logger.info(f"🔍 USERS CONTENT: {content[:200]}")
+        # No se imprime el contenido de users.json: incluía hashes de contraseñas.
 
 # Caché de resultados de búsqueda.
 # Vive en el KV store y no en variables globales: en serverless la petición
