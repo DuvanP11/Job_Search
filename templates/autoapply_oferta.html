@@ -110,6 +110,34 @@
             </div>
             <div class="col-lg-4">
                 <div class="card mb-4">
+                    <div class="card-header bg-white"><h5 class="mb-0">Documentos para esta vacante</h5></div>
+                    <div class="card-body">
+                        <p class="small text-muted">Se arman solo con datos de tu perfil; tu CV original no se modifica.</p>
+                        <form action="{{ url_for('autoapply.generar_documentos', job_id=job.id) }}" method="POST" class="mb-3">
+                            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="usar_ia" value="1" id="doc_ia" checked>
+                                <label class="form-check-label small" for="doc_ia">Usar IA para redactar (si falla, usa plantilla)</label></div>
+                            <button type="submit" class="btn btn-outline-primary w-100"><i class="fas fa-file-signature"></i>
+                                {{ 'Regenerar' if documentos else 'Generar' }} CV y carta</button>
+                        </form>
+                        {% for tipo, d in documentos.items() %}
+                        <div class="border rounded p-2 mb-2">
+                            <strong>{{ 'CV a la medida' if tipo == 'cv' else 'Carta de presentación' }}</strong>
+                            <span class="badge bg-secondary">{{ d.generado_con }}</span><br>
+                            <a class="btn btn-sm btn-outline-dark mt-1" href="{{ url_for('autoapply.descargar_documento', doc_id=d.id, fmt='pdf') }}">PDF</a>
+                            <a class="btn btn-sm btn-outline-dark mt-1" href="{{ url_for('autoapply.descargar_documento', doc_id=d.id, fmt='docx') }}">DOCX</a>
+                            {% for a in d.advertencias %}<div class="alert alert-warning py-1 px-2 small mt-2 mb-0">{{ a }}</div>{% endfor %}
+                            {% if tipo == 'cv' and d.coincidentes %}<div class="small mt-2">Habilidades de tu perfil que pide la oferta: {{ d.coincidentes|join(', ') }}</div>{% endif %}
+                            {% if tipo == 'carta' %}
+                            <form action="{{ url_for('autoapply.editar_carta', doc_id=d.id) }}" method="POST" class="mt-2">
+                                <textarea class="form-control form-control-sm" name="contenido" rows="9">{{ d.contenido }}</textarea>
+                                <button class="btn btn-sm btn-link px-0" type="submit">Guardar cambios</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card mb-4">
                     <div class="card-header bg-white"><h5 class="mb-0">Acciones</h5></div>
                     <div class="card-body">
                         <form action="{{ url_for('autoapply.preparar', job_id=job.id) }}" method="POST" class="mb-2">

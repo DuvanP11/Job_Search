@@ -22,3 +22,6 @@ python-docx==1.1.0
 #   límite de tamaño de una función.
 # - selenium: utils/selenium_scraper.py no lo importa nadie y en serverless no
 #   hay navegador. Para usarlo en local: pip install selenium==4.16.0
+
+# Documentos personalizados (PDF)
+reportlab>=4.2

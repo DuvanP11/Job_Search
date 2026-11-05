@@ -10,10 +10,13 @@ from functools import wraps
 from typing import Any
 
 from flask import (
-    Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
+    Blueprint, Response, flash, jsonify, redirect, render_template, request, session, url_for
 )
 
 from .cv import guardar_cv, guardar_perfil_profesional, obtener_perfil_profesional
+from .documents import (
+    carta_a_docx, carta_a_pdf, construir_datos_cv, cv_a_docx, cv_a_pdf, generar_carta, responder_pregunta,
+)
 from .engine import AutoApplyEngine
 from .profile import CVError, construir_perfil, estado_campos, extraer_texto
 from .models import DEFAULT_PROFILE_CONFIG, PORTALES_SOPORTADOS, PORTALES_NO_DISPONIBLES, MODOS
@@ -298,7 +301,97 @@ def oferta_detalle(job_id):
     if not job:
         flash('Oferta no encontrada.', 'danger')
         return redirect(url_for('autoapply.ofertas'))
-    return render_template('autoapply_oferta.html', job=job)
+    docs = store.list('documents', user_id, where=lambda r: r.get('job_id') == job_id, limit=50)
+    ultimos = {}
+    for d in sorted(docs, key=lambda r: r.get('created_at', ''), reverse=True):
+        ultimos.setdefault(d.get('tipo'), d)
+    return render_template('autoapply_oferta.html', job=job, documentos=ultimos)
+
+
+@autoapply_bp.route('/oferta/<job_id>/documentos', methods=['POST'])
+@_requiere_login
+def generar_documentos(job_id):
+    """CV a la medida + carta para esta vacante. El CV original no se modifica."""
+    store = get_store()
+    user_id = _user_id()
+    engine = AutoApplyEngine(store)
+    job = engine.obtener(user_id, job_id)
+    if not job:
+        flash('Oferta no encontrada.', 'danger')
+        return redirect(url_for('autoapply.ofertas'))
+    cand = obtener_perfil_profesional(user_id)
+    if not cand or not (cand.get('nombre_completo') and (cand.get('experiencia') or cand.get('habilidades'))):
+        flash('Completa tu perfil profesional (nombre y experiencia o habilidades) antes de generar documentos.', 'warning')
+        return redirect(url_for('autoapply.candidato'))
+    usar_ia = request.form.get('usar_ia', '1') == '1'
+    cv_res = construir_datos_cv(cand, job, usar_ia=usar_ia)
+    carta = generar_carta(cand, job, cv_res['habilidades_coincidentes'], usar_ia=usar_ia)
+    base = {'job_id': job_id, 'empresa': job.get('empresa', ''), 'cargo': job.get('titulo', '')}
+    store.save('documents', user_id, {**base, 'tipo': 'cv', 'contenido': cv_res['datos'],
+                                      'generado_con': cv_res['generado_con'],
+                                      'advertencias': cv_res['advertencias'],
+                                      'coincidentes': cv_res['habilidades_coincidentes']})
+    store.save('documents', user_id, {**base, 'tipo': 'carta', 'contenido': carta['texto'],
+                                      'generado_con': carta['generado_con'], 'idioma': carta['idioma'],
+                                      'advertencias': carta['advertencias']})
+    if job.get('status') == 'en_evaluacion':
+        engine.actualizar_estado(user_id, job_id, 'pendiente_revision', 'Documentos generados; falta revisión')
+    flash('Documentos generados. Revisa la carta y el CV antes de usarlos.', 'success')
+    return redirect(url_for('autoapply.oferta_detalle', job_id=job_id))
+
+
+def _nombre_archivo(doc, ext):
+    import re
+    limpio = re.sub(r'[^A-Za-z0-9]+', '_', f"{doc.get('empresa', '')}_{doc.get('cargo', '')}").strip('_')[:60]
+    return f"{'CV' if doc.get('tipo') == 'cv' else 'Carta'}_{limpio or 'oferta'}.{ext}"
+
+
+@autoapply_bp.route('/documento/<doc_id>/descargar/<fmt>')
+@_requiere_login
+def descargar_documento(doc_id, fmt):
+    doc = get_store().get('documents', _user_id(), doc_id)     # el almacén es por usuario
+    if not doc or fmt not in ('pdf', 'docx'):
+        flash('Documento no encontrado.', 'danger')
+        return redirect(url_for('autoapply.ofertas'))
+    if doc['tipo'] == 'cv':
+        datos = cv_a_pdf(doc['contenido']) if fmt == 'pdf' else cv_a_docx(doc['contenido'])
+    else:
+        datos = carta_a_pdf(doc['contenido']) if fmt == 'pdf' else carta_a_docx(doc['contenido'])
+    mime = 'application/pdf' if fmt == 'pdf' else \
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    return Response(datos, mimetype=mime, headers={
+        'Content-Disposition': f'attachment; filename="{_nombre_archivo(doc, fmt)}"',
+        'X-Content-Type-Options': 'nosniff'})
+
+
+@autoapply_bp.route('/documento/<doc_id>/editar', methods=['POST'])
+@_requiere_login
+def editar_carta(doc_id):
+    """El usuario puede corregir el texto de la carta; queda marcado como editado a mano."""
+    store = get_store()
+    user_id = _user_id()
+    doc = store.get('documents', user_id, doc_id)
+    if not doc or doc.get('tipo') != 'carta':
+        flash('Solo se puede editar el texto de la carta.', 'danger')
+        return redirect(url_for('autoapply.ofertas'))
+    doc['contenido'] = request.form.get('contenido', '').strip()[:6000]
+    doc['generado_con'] = 'editado_por_usuario'
+    doc['advertencias'] = []
+    store.save('documents', user_id, doc, record_id=doc_id)
+    flash('Carta actualizada.', 'success')
+    return redirect(url_for('autoapply.oferta_detalle', job_id=doc['job_id']))
+
+
+@autoapply_bp.route('/oferta/<job_id>/pregunta', methods=['POST'])
+@_requiere_login
+def responder_pregunta_formulario(job_id):
+    """Borrador para una pregunta abierta. Lo sensible devuelve `requiere_usuario`."""
+    user_id = _user_id()
+    job = AutoApplyEngine(get_store()).obtener(user_id, job_id)
+    pregunta = (request.get_json(silent=True) or {}).get('pregunta') or request.form.get('pregunta', '')
+    if not job or not pregunta.strip():
+        return jsonify({'error': 'Falta la oferta o la pregunta'}), 400
+    return jsonify(responder_pregunta(pregunta, obtener_perfil_profesional(user_id), job))
 
 
 @autoapply_bp.route('/oferta/<job_id>/preparar', methods=['POST'])
