@@ -21,6 +21,24 @@
         <h2><i class="fas fa-file-alt"></i> CV para postulación</h2>
         <p class="text-muted">Guarda el texto de tu CV. Se usa para preparar la información al postular.</p>
 
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for cat, m in mensajes %}<div class="alert alert-{{ cat }}">{{ m }}</div>{% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('autoapply.cv_importar') }}" enctype="multipart/form-data" class="card mb-4">
+            <div class="card-header bg-white"><h5 class="mb-0">Importar y analizar mi CV</h5></div>
+            <div class="card-body">
+                <p class="text-muted small">PDF, DOCX o TXT (máx. 8 MB). Se conserva tu original y se arma un perfil editable.
+                    Nada se confirma solo: tú marcas lo que es correcto.</p>
+                <div class="mb-3"><input type="file" class="form-control" name="archivo" accept=".pdf,.docx,.txt"></div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="usar_ia" value="1" id="usar_ia" checked>
+                    <label class="form-check-label" for="usar_ia">Usar IA para extraer (si no hay IA disponible se hace una lectura básica)</label>
+                </div>
+                <button class="btn btn-success" type="submit"><i class="fas fa-upload"></i> Importar CV</button>
+            </div>
+        </form>
+
         <form method="POST">
             <div class="card mb-4">
                 <div class="card-body">

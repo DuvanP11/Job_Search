@@ -15,6 +15,7 @@ from flask import (
 
 from .cv import guardar_cv, guardar_perfil_profesional, obtener_perfil_profesional
 from .engine import AutoApplyEngine
+from .profile import CVError, construir_perfil, estado_campos, extraer_texto
 from .models import DEFAULT_PROFILE_CONFIG, PORTALES_SOPORTADOS, PORTALES_NO_DISPONIBLES, MODOS
 from .runner import AutoApplyRunner
 from .security import validar_config_perfil
@@ -131,29 +132,53 @@ def perfil():
                            portales_soportados=PORTALES_SOPORTADOS)
 
 
+CAMPOS_CONFIRMABLES = ('nombre_completo', 'email', 'telefono', 'ciudad', 'linkedin', 'titular',
+                       'resumen', 'anios_experiencia', 'habilidades', 'educacion', 'experiencia', 'idiomas')
+
+
+def _filas(form, prefijo, campos):
+    """Reconstruye una lista de dicts desde inputs paralelos `prefijo_campo`."""
+    columnas = {c: form.getlist(f'{prefijo}_{c}') for c in campos}
+    n = max((len(v) for v in columnas.values()), default=0)
+    filas = []
+    for i in range(n):
+        fila = {c: (columnas[c][i].strip() if i < len(columnas[c]) else '') for c in campos}
+        if any(fila.values()):
+            filas.append(fila)
+    return filas
+
+
 @autoapply_bp.route('/candidato', methods=['GET', 'POST'])
 @_requiere_login
 def candidato():
-    store = get_store()
     user_id = _user_id()
     cand = obtener_perfil_profesional(user_id)
 
     if request.method == 'POST':
-        cand['nombre_completo'] = request.form.get('nombre_completo', '')
-        cand['email'] = request.form.get('email', '')
-        cand['telefono'] = request.form.get('telefono', '')
-        cand['ciudad'] = request.form.get('ciudad', '')
-        cand['titular'] = request.form.get('titular', '')
-        cand['resumen'] = request.form.get('resumen', '')
-        cand['anios_experiencia'] = int(request.form.get('anios_experiencia') or 0)
-        cand['aspiracion_salarial'] = int(request.form.get('aspiracion_salarial') or 0)
-        cand['linkedin'] = request.form.get('linkedin', '')
-        cand['habilidades'] = [h.strip() for h in request.form.get('habilidades', '').split(',') if h.strip()]
+        f = request.form
+        for campo in ('nombre_completo', 'email', 'telefono', 'ciudad', 'titular', 'resumen', 'linkedin'):
+            cand[campo] = f.get(campo, '').strip()
+        try:
+            cand['anios_experiencia'] = float(f.get('anios_experiencia') or 0)
+            cand['aspiracion_salarial'] = int(f.get('aspiracion_salarial') or 0)
+        except ValueError:
+            flash('Años de experiencia y aspiración salarial deben ser números.', 'danger')
+            return redirect(url_for('autoapply.candidato'))
+        cand['habilidades'] = [h.strip() for h in f.get('habilidades', '').split(',') if h.strip()]
+        cand['experiencia'] = []
+        for fila in _filas(f, 'exp', ('empresa', 'cargo', 'desde', 'hasta', 'responsabilidades')):
+            fila['responsabilidades'] = [r.strip() for r in fila['responsabilidades'].split('\n') if r.strip()]
+            cand['experiencia'].append(fila)
+        cand['educacion'] = _filas(f, 'edu', ('titulo', 'institucion', 'nivel'))
+        cand['idiomas'] = _filas(f, 'idi', ('idioma', 'nivel'))
+        # Solo lo que el usuario marca como correcto pasa a 'verificado'.
+        marcados = set(f.getlist('confirmar'))
+        cand['campos_confirmados'] = [c for c in CAMPOS_CONFIRMABLES if c in marcados]
         guardar_perfil_profesional(user_id, cand)
         flash('Perfil profesional guardado.', 'success')
-        return redirect(url_for('autoapply.index'))
+        return redirect(url_for('autoapply.candidato'))
 
-    return render_template('autoapply_candidato.html', candidato=cand)
+    return render_template('autoapply_candidato.html', candidato=cand, estados=estado_campos(cand))
 
 
 @autoapply_bp.route('/cv', methods=['GET', 'POST'])
@@ -172,6 +197,42 @@ def cv():
         return redirect(url_for('autoapply.index'))
 
     return render_template('autoapply_cv.html', cv=cv_actual)
+
+
+@autoapply_bp.route('/cv/importar', methods=['POST'])
+@_requiere_login
+def cv_importar():
+    """Sube un PDF/DOCX/TXT (o pega texto), conserva el original y arma el perfil."""
+    user_id = _user_id()
+    archivo = request.files.get('archivo')
+    try:
+        if archivo and archivo.filename:
+            texto = extraer_texto(archivo.read(), archivo.filename)
+            nombre = archivo.filename[:120]
+        else:
+            texto = request.form.get('cv_texto', '').strip()
+            nombre = 'texto pegado'
+            if len(texto) < 80:
+                raise CVError('Sube un archivo o pega el texto completo de tu CV.')
+    except CVError as exc:
+        flash(str(exc), 'danger')
+        return redirect(url_for('autoapply.cv'))
+
+    # El original se conserva tal cual; el perfil estructurado es aparte y editable.
+    guardar_cv(user_id, {'texto': texto, 'nombre_archivo': nombre})
+    existente = obtener_perfil_profesional(user_id)
+    r = construir_perfil(texto, existente=existente, usar_ia=request.form.get('usar_ia', '1') == '1')
+    guardar_perfil_profesional(user_id, r['perfil'])
+
+    if r['metodo']['tipo'] == 'ia':
+        flash(f"Perfil extraído con IA ({r['metodo']['proveedor']}). Revísalo y confirma lo correcto.", 'success')
+    else:
+        flash('Perfil extraído con lectura básica. Revísalo y complétalo.', 'warning')
+    for aviso in r['avisos']:
+        flash(aviso, 'warning')
+    if r['descartes']:
+        flash(f"Se descartaron {len(r['descartes'])} dato(s) de la IA que no aparecen en tu CV.", 'info')
+    return redirect(url_for('autoapply.candidato'))
 
 
 @autoapply_bp.route('/descubrir', methods=['POST'])

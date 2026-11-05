@@ -17,37 +17,38 @@
         </div>
     </nav>
 
+    {% macro estado(campo) %}
+        {% set e = estados.get(campo, 'pendiente') %}
+        <span class="badge {{ 'bg-success' if e == 'verificado' else 'bg-warning text-dark' if e == 'inferido' else 'bg-secondary' }}">{{ e|capitalize }}</span>
+        <label class="small ms-2"><input type="checkbox" name="confirmar" value="{{ campo }}" {{ 'checked' if e == 'verificado' }}> es correcto</label>
+    {% endmacro %}
     <div class="container mt-4">
         <h2><i class="fas fa-user"></i> Perfil profesional</h2>
-        <p class="text-muted">Esta información se usa para evaluar ofertas y preparar postulaciones.</p>
+        <p class="text-muted">Esta información se usa para evaluar ofertas y preparar postulaciones.
+            <strong>Verificado</strong> = lo confirmaste tú; <strong>Inferido</strong> = salió de tu CV y falta revisarlo;
+            <strong>Pendiente</strong> = vacío. Solo lo verificado se usará para rellenar formularios.</p>
+        <a href="{{ url_for('autoapply.cv') }}" class="btn btn-outline-success btn-sm mb-3"><i class="fas fa-upload"></i> Importar CV (PDF/DOCX/TXT)</a>
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for cat, m in mensajes %}<div class="alert alert-{{ cat }}">{{ m }}</div>{% endfor %}
+        {% endwith %}
 
         <form method="POST">
             <div class="card mb-4">
                 <div class="card-header bg-white"><h5 class="mb-0">Datos personales</h5></div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre completo</label>
-                            <input type="text" class="form-control" name="nombre_completo" value="{{ candidato.nombre_completo or '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" value="{{ candidato.email or '' }}">
-                        </div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Nombre completo</label> {{ estado('nombre_completo') }}
+                            <input type="text" class="form-control" name="nombre_completo" value="{{ candidato.nombre_completo or '' }}"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Email</label> {{ estado('email') }}
+                            <input type="email" class="form-control" name="email" value="{{ candidato.email or '' }}"></div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" name="telefono" value="{{ candidato.telefono or '' }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Ciudad</label>
-                            <input type="text" class="form-control" name="ciudad" value="{{ candidato.ciudad or '' }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">LinkedIn</label>
-                            <input type="text" class="form-control" name="linkedin" value="{{ candidato.linkedin or '' }}">
-                        </div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Teléfono</label> {{ estado('telefono') }}
+                            <input type="text" class="form-control" name="telefono" value="{{ candidato.telefono or '' }}"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Ciudad</label> {{ estado('ciudad') }}
+                            <input type="text" class="form-control" name="ciudad" value="{{ candidato.ciudad or '' }}"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">LinkedIn</label> {{ estado('linkedin') }}
+                            <input type="text" class="form-control" name="linkedin" value="{{ candidato.linkedin or '' }}"></div>
                     </div>
                 </div>
             </div>
@@ -55,28 +56,65 @@
             <div class="card mb-4">
                 <div class="card-header bg-white"><h5 class="mb-0">Profesional</h5></div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Titular profesional</label>
-                        <input type="text" class="form-control" name="titular" value="{{ candidato.titular or '' }}" placeholder="Ej: Desarrollador Backend | Python | SQL">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Resumen</label>
-                        <textarea class="form-control" name="resumen" rows="4">{{ candidato.resumen or '' }}</textarea>
-                    </div>
+                    <div class="mb-3"><label class="form-label">Titular profesional</label> {{ estado('titular') }}
+                        <input type="text" class="form-control" name="titular" value="{{ candidato.titular or '' }}" placeholder="Ej: Analista de datos | SQL | Power BI"></div>
+                    <div class="mb-3"><label class="form-label">Resumen</label> {{ estado('resumen') }}
+                        <textarea class="form-control" name="resumen" rows="4">{{ candidato.resumen or '' }}</textarea></div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Años de experiencia</label>
-                            <input type="number" class="form-control" name="anios_experiencia" value="{{ candidato.anios_experiencia or 0 }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Aspiración salarial (COP)</label>
-                            <input type="number" class="form-control" name="aspiracion_salarial" value="{{ candidato.aspiracion_salarial or 0 }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Habilidades (separadas por coma)</label>
-                            <input type="text" class="form-control" name="habilidades" value="{{ candidato.habilidades|join(', ') if candidato.habilidades else '' }}">
-                        </div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Años de experiencia</label> {{ estado('anios_experiencia') }}
+                            <input type="number" step="0.1" min="0" class="form-control" name="anios_experiencia" value="{{ candidato.anios_experiencia or 0 }}"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Aspiración salarial (COP)</label>
+                            <input type="number" min="0" class="form-control" name="aspiracion_salarial" value="{{ candidato.aspiracion_salarial or 0 }}"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Habilidades (separadas por coma)</label> {{ estado('habilidades') }}
+                            <input type="text" class="form-control" name="habilidades" value="{{ candidato.habilidades|join(', ') if candidato.habilidades else '' }}"></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Experiencia laboral</h5> {{ estado('experiencia') }}</div>
+                <div class="card-body">
+                    <p class="small text-muted">Fechas como AAAA-MM; en el cargo actual escribe "actual". Una fila vacía al final sirve para añadir.</p>
+                    {% for x in (candidato.experiencia or []) + [{}] %}
+                    <div class="row g-2 mb-3 border-bottom pb-2">
+                        <div class="col-md-3"><input class="form-control" name="exp_empresa" placeholder="Empresa" value="{{ x.empresa or '' }}"></div>
+                        <div class="col-md-3"><input class="form-control" name="exp_cargo" placeholder="Cargo" value="{{ x.cargo or '' }}"></div>
+                        <div class="col-md-3"><input class="form-control" name="exp_desde" placeholder="Desde" value="{{ x.desde or '' }}"></div>
+                        <div class="col-md-3"><input class="form-control" name="exp_hasta" placeholder="Hasta" value="{{ x.hasta or '' }}"></div>
+                        <div class="col-12"><textarea class="form-control" name="exp_responsabilidades" rows="2" placeholder="Responsabilidades y logros (una por línea)">{{ (x.responsabilidades or [])|join('\n') }}</textarea></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Formación</h5> {{ estado('educacion') }}</div>
+                <div class="card-body">
+                    {% for e in (candidato.educacion or []) + [{}] %}
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-5"><input class="form-control" name="edu_titulo" placeholder="Título" value="{{ e.titulo or '' }}"></div>
+                        <div class="col-md-4"><input class="form-control" name="edu_institucion" placeholder="Institución" value="{{ e.institucion or '' }}"></div>
+                        <div class="col-md-3"><select class="form-select" name="edu_nivel">
+                            {% for n in ['', 'bachiller', 'tecnico', 'tecnologo', 'pregrado', 'especializacion', 'maestria', 'doctorado'] %}
+                            <option value="{{ n }}" {{ 'selected' if e.nivel == n }}>{{ n or 'Nivel' }}</option>{% endfor %}
+                        </select></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Idiomas</h5> {{ estado('idiomas') }}</div>
+                <div class="card-body">
+                    {% for i in (candidato.idiomas or []) + [{}] %}
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6"><input class="form-control" name="idi_idioma" placeholder="Idioma" value="{{ i.idioma or '' }}"></div>
+                        <div class="col-md-6"><select class="form-select" name="idi_nivel">
+                            {% for n in ['', 'basico', 'intermedio', 'avanzado', 'nativo'] %}
+                            <option value="{{ n }}" {{ 'selected' if i.nivel == n }}>{{ n or 'Nivel' }}</option>{% endfor %}
+                        </select></div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
