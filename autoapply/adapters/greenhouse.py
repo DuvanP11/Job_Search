@@ -29,7 +29,8 @@ class GreenhouseAdapter(AtsApiAdapter):
                 'moneda': '',
                 'descripcion': html_a_texto(j.get('content')),
                 'url': j.get('absolute_url'),
-                'application_url': j.get('absolute_url'),
+                # Formulario embebido de Greenhouse: carga directo aunque la empresa tenga sitio propio.
+                'application_url': f"https://job-boards.greenhouse.io/embed/job_app?for={slug}&token={j.get('id')}",
                 'fecha_publicacion': a_iso(j.get('first_published') or j.get('updated_at')),
             })
         return salida
