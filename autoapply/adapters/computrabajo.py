@@ -37,6 +37,9 @@ class ComputrabajoAdapter(AdapterBase):
                         ciudad=ciudad,
                         cantidad=resultados_por_cargo,
                     )
+                    if not crudos:
+                        resultado.advertencias.append(
+                            f'Computrabajo "{cargo}": 0 resultados (sin ofertas, o el portal bloqueó/cambió su formato).')
                     for crudo in crudos:
                         if not isinstance(crudo, dict):
                             continue
