@@ -106,6 +106,8 @@ def perfil():
         config['portales'] = request.form.getlist('portales')
         config['greenhouse_boards'] = [b.strip() for b in request.form.get('greenhouse_boards', '').split('\n') if b.strip()]
         config['lever_companies'] = [c.strip() for c in request.form.get('lever_companies', '').split('\n') if c.strip()]
+        config['ashby_boards'] = [c.strip() for c in request.form.get('ashby_boards', '').split('\n') if c.strip()]
+        config['smartrecruiters_companies'] = [c.strip() for c in request.form.get('smartrecruiters_companies', '').split('\n') if c.strip()]
         config['empresas_excluidas'] = [e.strip() for e in request.form.get('empresas_excluidas', '').split('\n') if e.strip()]
         config['horario'] = {
             'desde': request.form.get('desde', '08:00'),

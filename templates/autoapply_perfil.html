@@ -160,6 +160,18 @@
                             <small class="text-muted">Ej: notion, figma</small>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ashby boards (uno por línea)</label>
+                            <textarea class="form-control" name="ashby_boards" rows="3">{{ config.ashby_boards|join('\n') if config.ashby_boards else '' }}</textarea>
+                            <small class="text-muted">El identificador está en jobs.ashbyhq.com/<b>empresa</b></small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SmartRecruiters companies (uno por línea)</label>
+                            <textarea class="form-control" name="smartrecruiters_companies" rows="3">{{ config.smartrecruiters_companies|join('\n') if config.smartrecruiters_companies else '' }}</textarea>
+                            <small class="text-muted">El identificador está en jobs.smartrecruiters.com/<b>empresa</b></small>
+                        </div>
+                    </div>
                 </div>
             </div>
 

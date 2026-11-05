@@ -5,12 +5,16 @@ from .computrabajo import ComputrabajoAdapter
 from .elempleo import ElEmpleoAdapter
 from .greenhouse import GreenhouseAdapter
 from .lever import LeverAdapter
+from .ashby import AshbyAdapter
+from .smartrecruiters import SmartRecruitersAdapter
 
 REGISTRO = {
     'computrabajo': ComputrabajoAdapter,
     'elempleo': ElEmpleoAdapter,
     'greenhouse': GreenhouseAdapter,
     'lever': LeverAdapter,
+    'ashby': AshbyAdapter,
+    'smartrecruiters': SmartRecruitersAdapter,
 }
 
 

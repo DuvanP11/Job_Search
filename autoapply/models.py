@@ -63,6 +63,18 @@ PORTALES_SOPORTADOS = {
         'envio_automatico': False,
         'nota': 'Requiere empresas públicas configuradas. Formulario propio del ATS.',
     },
+    'ashby': {
+        'nombre': 'Ashby',
+        'descubrimiento': True,
+        'envio_automatico': False,
+        'nota': 'API pública de tableros. Incluye salario cuando la empresa lo publica.',
+    },
+    'smartrecruiters': {
+        'nombre': 'SmartRecruiters',
+        'descubrimiento': True,
+        'envio_automatico': False,
+        'nota': 'API pública de ofertas. La descripción solo se consulta para cargos que coinciden.',
+    },
 }
 
 PORTALES_NO_DISPONIBLES = {
@@ -99,6 +111,8 @@ DEFAULT_PROFILE_CONFIG: Dict[str, Any] = {
     'portales': ['computrabajo', 'elempleo'],
     'greenhouse_boards': [],
     'lever_companies': [],
+    'ashby_boards': [],
+    'smartrecruiters_companies': [],
     'puntuacion_minima': 60,
     'max_postulaciones_diarias': 5,
     'horario': {

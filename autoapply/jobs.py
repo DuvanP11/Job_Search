@@ -270,7 +270,7 @@ def normalizar_job(raw: Dict[str, Any], portal_key: str) -> Dict[str, Any]:
 
     salario_min = raw.get('salario_minimo') or raw.get('salary_min')
     salario_max = raw.get('salario_maximo') or raw.get('salary_max')
-    moneda = str(raw.get('moneda') or raw.get('currency') or 'COP').upper()[:3]
+    moneda = str(raw['moneda'] if 'moneda' in raw else (raw.get('currency') or 'COP')).upper()[:3]
     if salario_min is None and salario_max is None:
         salario_min, salario_max, moneda = _detectar_salario(descripcion, moneda)
     try:
@@ -315,7 +315,7 @@ def normalizar_job(raw: Dict[str, Any], portal_key: str) -> Dict[str, Any]:
         'ubicacion': ubicacion,
         'ciudad': limpiar(raw.get('ciudad'), 100),
         'departamento': limpiar(raw.get('departamento'), 100),
-        'pais': limpiar(raw.get('pais') or 'Colombia', 80),
+        'pais': limpiar(raw['pais'] if 'pais' in raw else 'Colombia', 80),
         'modalidad': modalidad,
         'salario_minimo': salario_min,
         'salario_maximo': salario_max,
