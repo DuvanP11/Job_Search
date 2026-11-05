@@ -1,0 +1,49 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Auto Apply{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-robot"></i> Auto Apply: modo y reglas</h2>
+<div class="alert alert-secondary small">
+  <strong>Manual</strong>: solo encuentra y evalúa. <strong>Asistido</strong>: prepara documentos y formulario; tú autorizas cada envío.
+  <strong>Autónomo</strong>: envía solo lo que cumple tus reglas — está <u>apagado</u> hasta que lo actives aquí.
+  En cualquier modo el agente <strong>se detiene</strong> ante CAPTCHA, verificación en dos pasos, inicio de sesión y preguntas legales,
+  médicas, demográficas o migratorias, y solo marca "confirmada" una postulación cuando el portal la confirma.
+</div>
+<div class="alert {{ 'alert-success' if latido.activo else 'alert-warning' }} py-2 small">Worker: {{ latido.texto }} · Envío real en el servidor: <strong>{{ 'sí' if envio_real else 'no (modo prueba)' }}</strong>
+  · Portales con envío automatizado: {{ con_envio|join(', ') or 'ninguno' }}</div>
+
+<form method="POST" class="card mb-4">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="card-header bg-white"><h5 class="mb-0">Configuración</h5></div><div class="card-body">
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Modo</label>
+      <select class="form-select" name="modo">{% for k, v in modos.items() %}<option value="{{ k }}" {{ 'selected' if cfg.modo == k }}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label">Compatibilidad mínima</label><input type="number" min="0" max="100" class="form-control" name="puntuacion_minima" value="{{ cfg.puntuacion_minima }}"></div>
+    <div class="col-md-3"><label class="form-label">Máx. postulaciones por día</label><input type="number" min="1" max="50" class="form-control" name="max_postulaciones_diarias" value="{{ cfg.max_postulaciones_diarias }}"></div>
+    <div class="col-md-6"><label class="form-label">Empresas permitidas (una por línea; vacío = cualquiera que cumpla las reglas)</label>
+      <textarea class="form-control" name="empresas_permitidas" rows="3">{{ cfg.autonomo.empresas_permitidas|join('\n') }}</textarea>
+      <div class="form-text">Las empresas excluidas, salario mínimo, ubicaciones, modalidades y cargos se definen en <a href="{{ url_for('autoapply.perfil') }}">Preferencias laborales</a>.</div></div>
+    <div class="col-md-6">
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="ventana_horaria" id="vh" {{ 'checked' if cfg.autonomo.ventana_horaria }}><label class="form-check-label" for="vh">Enviar solo dentro del horario y días de mis preferencias</label></div>
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="permitir_respuestas_ia" id="pia" {{ 'checked' if cfg.autonomo.permitir_respuestas_ia }}><label class="form-check-label" for="pia">Permitir borradores de IA en preguntas abiertas (solo modo autónomo; nunca en preguntas sensibles)</label></div>
+      <hr><div class="form-check"><input class="form-check-input" type="checkbox" name="prog_activa" id="pa" {{ 'checked' if cfg.programacion.activa }}><label class="form-check-label" for="pa">Búsqueda programada (la ejecuta el worker)</label></div>
+      <div class="row g-2 mt-1"><div class="col"><label class="form-label small">Cada (horas)</label><input type="number" step="0.5" min="1" class="form-control" name="prog_cada_horas" value="{{ cfg.programacion.cada_horas }}"></div>
+        <div class="col"><label class="form-label small">Máx. vacantes a preparar</label><input type="number" min="1" class="form-control" name="prog_max_vacantes" value="{{ cfg.programacion.max_vacantes }}"></div></div>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-3" type="submit">Guardar</button>
+</div></form>
+
+<div class="card border-{{ 'danger' if cfg.autonomo.habilitado else 'warning' }}">
+  <div class="card-header bg-white"><h5 class="mb-0">Modo autónomo: <span class="badge bg-{{ 'danger' if cfg.autonomo.habilitado else 'secondary' }}">{{ 'ACTIVO' if cfg.autonomo.habilitado else 'APAGADO' }}</span></h5></div>
+  <div class="card-body">
+  {% if cfg.autonomo.habilitado %}
+    <p>Activado el {{ cfg.autonomo.habilitado_en[:16].replace('T', ' ') }}. Con el modo "Autónomo" elegido arriba, el agente enviará postulaciones sin pedirte permiso cuando cumplan todas las reglas.</p>
+    <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="accion" value="desactivar"><button class="btn btn-outline-danger">Desactivar ahora</button></form>
+  {% else %}
+    <p>Para activarlo confirma que entiendes que el agente podrá enviar postulaciones a tu nombre, con tus datos verificados y los documentos generados, sin que las revises una por una.</p>
+    <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="accion" value="activar">
+      <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="acepto" id="acepto" required><label class="form-check-label" for="acepto">Entiendo y acepto; puedo desactivarlo cuando quiera.</label></div>
+      <div class="input-group" style="max-width:380px"><input class="form-control" name="confirmacion" placeholder="Escribe ACTIVAR" autocomplete="off"><button class="btn btn-danger">Activar</button></div></form>
+  {% endif %}</div></div>
+{% endblock %}

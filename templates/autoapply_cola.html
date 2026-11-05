@@ -1,0 +1,43 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Cola de postulaciones{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-tasks"></i> Cola de postulaciones</h2>
+<div class="alert {{ 'alert-success' if latido.activo else 'alert-warning' }} py-2 small">Worker: {{ latido.texto }}
+  · Envío real: {{ 'HABILITADO' if envio_real else 'deshabilitado (el agente rellena y verifica, no envía)' }}</div>
+
+<h5 class="mt-4">Esperan tu autorización</h5>
+<div class="card mb-4"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Vacante</th><th>Compat.</th><th>Documentos</th><th>Portal</th><th></th></tr></thead><tbody>
+{% for j in por_autorizar %}<tr>
+  <td><a href="{{ url_for('autoapply.oferta_detalle', job_id=j.id) }}">{{ j.titulo[:60] }}</a><br><small class="text-muted">{{ j.empresa }}</small></td>
+  <td>{{ j.puntuacion }}</td>
+  <td>{{ 'listos' if (docs.get(j.id) or [])|length >= 2 else 'faltan' }}</td>
+  <td>{{ j.portal }} {% if j.portal in con_envio %}<span class="badge bg-success">envío automático</span>{% else %}<span class="badge bg-secondary">manual</span>{% endif %}</td>
+  <td class="text-end">
+    {% if j.status == 'lista_para_postular' and j.evidencia_dry_run %}<span class="badge bg-info text-dark">formulario verificado</span>{% endif %}
+    {% if (docs.get(j.id) or [])|length >= 2 and j.portal in con_envio %}
+    <form method="POST" action="{{ url_for('autoapply.autorizar', job_id=j.id) }}" class="d-inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-success" onclick="return confirm('¿Autorizas el envío de esta postulación con los documentos actuales?')">Autorizar envío</button></form>
+    {% else %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('autoapply.oferta_detalle', job_id=j.id) }}">Revisar</a>{% endif %}
+  </td></tr>
+{% else %}<tr><td colspan="5" class="text-muted text-center">Nada pendiente de autorización.</td></tr>{% endfor %}
+</tbody></table></div></div>
+
+<h5>Requieren tu intervención</h5>
+<div class="card mb-4"><ul class="list-group list-group-flush">
+{% for j in intervencion %}<li class="list-group-item"><a href="{{ url_for('autoapply.oferta_detalle', job_id=j.id) }}">{{ j.titulo[:60] }}</a> — {{ j.empresa }}
+  <div class="small text-muted">{{ j.motivo_cambio }}</div></li>
+{% else %}<li class="list-group-item text-muted">Ninguna.</li>{% endfor %}</ul></div>
+
+<h5>Tareas del agente</h5>
+<div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
+<thead class="table-light"><tr><th>Acción</th><th>Estado</th><th>Intentos</th><th>Último error / resultado</th><th></th></tr></thead><tbody>
+{% for t in tareas[:40] %}<tr><td>{{ t.accion }} <small class="text-muted">{{ t.job_id }}</small></td>
+  <td><span class="badge bg-{{ 'success' if t.estado == 'completada' else 'danger' if t.estado == 'fallida' else 'warning text-dark' if t.estado == 'requiere_usuario' else 'secondary' }}">{{ t.estado }}</span></td>
+  <td>{{ t.intentos }}/{{ t.max_intentos }}</td><td class="small">{{ t.ultimo_error or t.resultado.motivo or '' }}</td>
+  <td>{% if t.estado in ['pendiente', 'en_curso'] %}<form method="POST" action="{{ url_for('autoapply.cancelar_tarea', tarea_id=t.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-link text-danger">Cancelar</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="text-muted text-center">Sin tareas.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

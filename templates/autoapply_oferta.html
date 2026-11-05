@@ -16,6 +16,7 @@
             </div>
         </div>
     </nav>
+    {% include 'autoapply_subnav.html' %}
 
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -114,6 +115,7 @@
                     <div class="card-body">
                         <p class="small text-muted">Se arman solo con datos de tu perfil; tu CV original no se modifica.</p>
                         <form action="{{ url_for('autoapply.generar_documentos', job_id=job.id) }}" method="POST" class="mb-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="usar_ia" value="1" id="doc_ia" checked>
                                 <label class="form-check-label small" for="doc_ia">Usar IA para redactar (si falla, usa plantilla)</label></div>
                             <button type="submit" class="btn btn-outline-primary w-100"><i class="fas fa-file-signature"></i>
@@ -129,6 +131,7 @@
                             {% if tipo == 'cv' and d.coincidentes %}<div class="small mt-2">Habilidades de tu perfil que pide la oferta: {{ d.coincidentes|join(', ') }}</div>{% endif %}
                             {% if tipo == 'carta' %}
                             <form action="{{ url_for('autoapply.editar_carta', doc_id=d.id) }}" method="POST" class="mt-2">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <textarea class="form-control form-control-sm" name="contenido" rows="9">{{ d.contenido }}</textarea>
                                 <button class="btn btn-sm btn-link px-0" type="submit">Guardar cambios</button>
                             </form>
@@ -140,10 +143,18 @@
                 <div class="card mb-4">
                     <div class="card-header bg-white"><h5 class="mb-0">Acciones</h5></div>
                     <div class="card-body">
+                        {% if documentos|length >= 2 and job.status not in ['postulacion_confirmada', 'enviada_sin_confirmacion', 'descartada'] %}
+                        <form action="{{ url_for('autoapply.autorizar', job_id=job.id) }}" method="POST" class="mb-2">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('¿Autorizas que el agente envíe esta postulación con los documentos actuales?')"><i class="fas fa-paper-plane"></i> Autorizar envío</button>
+                            <div class="form-text">Si el portal pide CAPTCHA o preguntas sensibles, el agente se detendrá y te avisará.</div>
+                        </form>{% endif %}
                         <form action="{{ url_for('autoapply.preparar', job_id=job.id) }}" method="POST" class="mb-2">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-primary w-100"><i class="fas fa-clipboard-check"></i> Preparar para postulación</button>
                         </form>
                         <form action="{{ url_for('autoapply.postular_manual', job_id=job.id) }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <input type="text" class="form-control" name="evidencia" placeholder="Evidencia (captura, URL, nota)">
                             </div>
@@ -155,6 +166,7 @@
                         </form>
                         <hr>
                         <form action="{{ url_for('autoapply.cambiar_estado', job_id=job.id) }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <select name="status" class="form-select">
                                     <option value="en_evaluacion">En evaluación</option>

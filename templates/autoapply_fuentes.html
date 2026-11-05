@@ -1,0 +1,17 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Fuentes de empleo{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-plug"></i> Fuentes de empleo</h2>
+<p class="text-muted">Solo APIs públicas y páginas públicas permitidas por su <code>robots.txt</code>. Cada fuente muestra su estado real.</p>
+<div class="card mb-4"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Fuente</th><th>Búsqueda</th><th>Envío automatizado</th><th>Habilitada</th><th>Empresas configuradas</th><th>Nota</th></tr></thead><tbody>
+{% for f in filas %}<tr><td><strong>{{ f.nombre }}</strong></td>
+  <td>{{ '✔' if f.soporta_busqueda else '—' }}</td>
+  <td>{% if f.envio %}<span class="badge bg-success">sí (verifica CAPTCHA/MFA)</span>{% else %}<span class="badge bg-secondary">manual</span>{% endif %}</td>
+  <td>{{ '✔' if f.habilitada else '✘' }}</td>
+  <td>{{ f.configurados if f.configurados is not none else 'n/a (búsqueda por cargo)' }}</td>
+  <td class="small text-muted">{{ f.info }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if ultimo %}<p class="small text-muted">Última búsqueda: {{ ultimo.ts[:16].replace('T', ' ') }} — {{ ultimo.detalle }}</p>{% endif %}
+<h5>No disponibles (y por qué)</h5>
+<ul class="small">{% for k, motivo in no_disponibles.items() %}<li><strong>{{ k }}</strong>: {{ motivo }}</li>{% endfor %}</ul>
+{% endblock %}

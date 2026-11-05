@@ -100,3 +100,12 @@ def reset_router_for_tests(router: Optional[AIRouter] = None) -> None:
     global _router
     with _lock:
         _router = router
+
+
+def router_para_usuario(store, owner_id) -> AIRouter:
+    """Router con el proveedor/modelo que el usuario eligió por tarea (las claves siguen en el entorno)."""
+    cfg = (store.get('settings', owner_id, 'ia') or {}).get('tareas') or {}
+    limpio = {t: [{'proveedor': e['proveedor'], 'modelo': e.get('modelo', '')} for e in lista
+                  if e.get('proveedor') in REGISTRO]
+              for t, lista in cfg.items() if t in TAREAS and isinstance(lista, list)}
+    return AIRouter(config={t: v for t, v in limpio.items() if v})

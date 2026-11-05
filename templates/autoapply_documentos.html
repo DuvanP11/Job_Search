@@ -1,0 +1,16 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Documentos{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-file-alt"></i> Documentos generados</h2>
+<p class="text-muted small">Cada documento está asociado a su vacante. Tu CV original no se modifica nunca.</p>
+<div class="card"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Fecha</th><th>Documento</th><th>Vacante</th><th>Generado con</th><th>Descargar</th></tr></thead><tbody>
+{% for d in docs %}<tr><td class="small">{{ d.created_at[:16].replace('T', ' ') }}</td>
+  <td>{{ 'CV a la medida' if d.tipo == 'cv' else 'Carta de presentación' }}</td>
+  <td><a href="{{ url_for('autoapply.oferta_detalle', job_id=d.job_id) }}">{{ d.cargo[:50] }}</a> <small class="text-muted">{{ d.empresa }}</small></td>
+  <td><span class="badge bg-secondary">{{ d.generado_con }}</span>{% for a in d.advertencias %}<div class="small text-warning">{{ a[:90] }}</div>{% endfor %}</td>
+  <td><a class="btn btn-sm btn-outline-dark" href="{{ url_for('autoapply.descargar_documento', doc_id=d.id, fmt='pdf') }}">PDF</a>
+      <a class="btn btn-sm btn-outline-dark" href="{{ url_for('autoapply.descargar_documento', doc_id=d.id, fmt='docx') }}">DOCX</a></td></tr>
+{% else %}<tr><td colspan="5" class="text-center text-muted">Aún no hay documentos. Genera uno desde una vacante.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

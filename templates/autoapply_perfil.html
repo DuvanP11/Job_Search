@@ -16,6 +16,7 @@
             </div>
         </div>
     </nav>
+    {% include 'autoapply_subnav.html' %}
 
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -33,6 +34,7 @@
         <p class="text-muted">Define cargos, ubicación, filtros y portales. Los datos se guardan por usuario.</p>
 
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="card mb-4">
                 <div class="card-header bg-white"><h5 class="mb-0">General</h5></div>
                 <div class="card-body">

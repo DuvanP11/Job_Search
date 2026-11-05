@@ -1,0 +1,23 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Configuración de IA{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-brain"></i> Configuración de IA</h2>
+<p class="text-muted">Prioridad gratuita: Ollama local primero. Sin ningún modelo disponible el sistema sigue funcionando con reglas y plantillas (sin inventar nada).
+  Las claves de API <strong>no se guardan aquí</strong>: se definen como variables de entorno.</p>
+<div class="card mb-4"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Proveedor</th><th>Modelo por defecto</th><th>Costo</th><th>Estado</th><th>Cómo activarlo</th></tr></thead><tbody>
+{% for p in estado %}<tr><td>{{ p.nombre }}</td><td><code>{{ p.modelo or 'primero disponible' }}</code></td>
+  <td>{{ 'gratis / local' if p.gratuito else 'de pago' }}</td>
+  <td>{% if p.disponible %}<span class="badge bg-success">Disponible</span>{% elif p.configurado %}<span class="badge bg-warning text-dark">Configurado, sin respuesta</span>{% else %}<span class="badge bg-secondary">No configurado</span>{% endif %}</td>
+  <td class="small text-muted">{% if p.clave == 'ollama' %}<code>OLLAMA_URL</code>, <code>OLLAMA_MODEL</code>{% elif p.clave == 'openrouter' %}<code>OPENROUTER_API_KEY</code>{% elif p.clave == 'openai' %}<code>OPENAI_API_KEY</code>{% else %}<code>ANTHROPIC_API_KEY</code>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+<form method="POST" class="card">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="card-header bg-white"><h5 class="mb-0">Proveedor por tarea</h5></div><div class="card-body">
+  <p class="small text-muted">Elige a qué proveedor llamar primero en cada tarea; si falla, se usan los demás. "Automático" sigue el orden gratuito → de pago.</p>
+  {% for t in tareas %}<div class="row g-2 mb-2 align-items-center">
+    <div class="col-md-3"><strong>{{ {'extraccion_cv': 'Extracción de CV', 'clasificacion': 'Clasificación de vacantes', 'matching': 'Matching', 'documentos': 'Documentos', 'formularios': 'Respuestas a formularios', 'navegacion': 'Agente de navegación'}[t] }}</strong></div>
+    <div class="col-md-4"><select class="form-select" name="prov_{{ t }}"><option value="">Automático</option>
+      {% for p in proveedores %}<option value="{{ p }}" {{ 'selected' if guardado.get(t, {}).get('proveedor') == p }}>{{ p }}</option>{% endfor %}</select></div>
+    <div class="col-md-5"><input class="form-control" name="modelo_{{ t }}" placeholder="Modelo (opcional)" value="{{ guardado.get(t, {}).get('modelo', '') }}"></div></div>{% endfor %}
+  <button class="btn btn-primary mt-2">Guardar</button></div></form>
+{% endblock %}

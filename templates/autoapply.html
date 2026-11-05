@@ -18,6 +18,7 @@
             </div>
         </div>
     </nav>
+    {% include 'autoapply_subnav.html' %}
 
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -85,6 +86,7 @@
                     <div class="card-body">
                         <p class="text-muted">Busca ofertas en los portales habilitados según tu perfil configurado.</p>
                         <form action="{{ url_for('autoapply.descubrir') }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sync"></i> Buscar ahora
                             </button>
@@ -98,6 +100,7 @@
                     </div>
                     <div class="card-body">
                         <form action="{{ url_for('autoapply.ejecutar') }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-3">
                                 <label class="form-label">Modo</label>
                                 <select name="modo" class="form-select">

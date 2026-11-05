@@ -2,6 +2,18 @@
 
 Portal web con **login REAL** usando Selenium para búsqueda sin bloqueos.
 
+## 🤖 AI Auto Apply
+
+Agente de empleo personal: busca vacantes en fuentes reales, las evalúa contra tu perfil, prepara CV y carta a la medida,
+completa formularios y —con tu autorización— envía y verifica la confirmación. Empieza en `/autoaplicar/panel`.
+Documentación completa: [`docs/AI_AUTO_APPLY.md`](docs/AI_AUTO_APPLY.md) · auditoría: [`docs/AUDITORIA.md`](docs/AUDITORIA.md).
+
+```bash
+pip install -r requirements.txt -r requirements-worker.txt && python -m playwright install chromium
+python app.py                  # web
+python -m autoapply.worker     # worker (proceso aparte)
+```
+
 ## ✅ **YA IMPLEMENTADO**
 
 ### 🔐 Sistema de Credenciales

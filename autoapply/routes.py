@@ -4,22 +4,25 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
+import secrets
 from functools import wraps
 from typing import Any
 
 from flask import (
-    Blueprint, Response, flash, jsonify, redirect, render_template, request, session, url_for
+    Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 )
 
+from .ai import router_para_usuario
 from .cv import guardar_cv, guardar_perfil_profesional, obtener_perfil_profesional
 from .documents import (
     carta_a_docx, carta_a_pdf, construir_datos_cv, cv_a_docx, cv_a_pdf, generar_carta, responder_pregunta,
 )
 from .engine import AutoApplyEngine
 from .profile import CVError, construir_perfil, estado_campos, extraer_texto
-from .models import DEFAULT_PROFILE_CONFIG, PORTALES_SOPORTADOS, PORTALES_NO_DISPONIBLES, MODOS
+from .models import DEFAULT_PROFILE_CONFIG, ESTADOS, PORTALES_SOPORTADOS, PORTALES_NO_DISPONIBLES, MODOS
 from .runner import AutoApplyRunner
 from .security import validar_config_perfil
 from .storage import get_store
@@ -28,6 +31,27 @@ logger = logging.getLogger(__name__)
 
 autoapply_bp = Blueprint('autoapply', __name__, url_prefix='/autoaplicar',
                         template_folder='../templates')
+
+
+def csrf_token() -> str:
+    if not session.get('csrf'):
+        session['csrf'] = secrets.token_urlsafe(24)
+    return session['csrf']
+
+
+@autoapply_bp.app_context_processor
+def _inyectar_csrf():
+    return {'csrf_token': csrf_token}
+
+
+@autoapply_bp.before_request
+def _verificar_csrf():
+    """Toda petición que cambia datos exige el token de la sesión (formulario o cabecera X-CSRF-Token)."""
+    if request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and not current_app.config.get('AUTOAPPLY_CSRF_DISABLED'):
+        enviado = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token') or ''
+        esperado = session.get('csrf') or ''
+        if not esperado or not hmac.compare_digest(str(enviado), str(esperado)):
+            abort(400, 'Token CSRF inválido o ausente. Recarga la página e inténtalo de nuevo.')
 
 
 def _user_id():
@@ -278,17 +302,36 @@ def ejecutar():
     return redirect(url_for('autoapply.index'))
 
 
+POR_PAGINA = 25
+
+
 @autoapply_bp.route('/ofertas')
 @_requiere_login
 def ofertas():
-    store = get_store()
-    user_id = _user_id()
-    engine = AutoApplyEngine(store)
-    status = request.args.get('status')
-    portal = request.args.get('portal')
-    ofertas = engine.listar(user_id, status=status, portal=portal, limit=200)
-    return render_template('autoapply_ofertas.html', ofertas=ofertas,
-                           status_filtro=status, portal_filtro=portal)
+    """Vacantes con filtros por estado/portal, búsqueda de texto, orden y paginación."""
+    store, user_id = get_store(), _user_id()
+    status, portal = request.args.get('status') or '', request.args.get('portal') or ''
+    q = (request.args.get('q') or '').strip().lower()
+    orden = request.args.get('orden') or 'puntuacion'
+    try:
+        pagina = max(1, int(request.args.get('page') or 1))
+    except ValueError:
+        pagina = 1
+    todas = AutoApplyEngine(store).listar(user_id, status=status or None, portal=portal or None, limit=5000)
+    if q:
+        todas = [o for o in todas if q in f"{o.get('titulo', '')} {o.get('empresa', '')} {o.get('ubicacion', '')}".lower()]
+    if orden == 'reciente':
+        todas.sort(key=lambda o: o.get('created_at', ''), reverse=True)
+    elif orden == 'empresa':
+        todas.sort(key=lambda o: (o.get('empresa') or '').lower())
+    else:
+        todas.sort(key=lambda o: (-(o.get('puntuacion') or 0), -((o.get('matching') or {}).get('confianza') or 0)))
+    total = len(todas)
+    paginas = max(1, -(-total // POR_PAGINA))
+    pagina = min(pagina, paginas)
+    return render_template('autoapply_ofertas.html', ofertas=todas[(pagina - 1) * POR_PAGINA: pagina * POR_PAGINA],
+                           status_filtro=status, portal_filtro=portal, q=q, orden=orden, pagina=pagina,
+                           paginas=paginas, total=total, estados=ESTADOS, portales=sorted(PORTALES_SOPORTADOS))
 
 
 @autoapply_bp.route('/oferta/<job_id>')
@@ -324,8 +367,9 @@ def generar_documentos(job_id):
         flash('Completa tu perfil profesional (nombre y experiencia o habilidades) antes de generar documentos.', 'warning')
         return redirect(url_for('autoapply.candidato'))
     usar_ia = request.form.get('usar_ia', '1') == '1'
-    cv_res = construir_datos_cv(cand, job, usar_ia=usar_ia)
-    carta = generar_carta(cand, job, cv_res['habilidades_coincidentes'], usar_ia=usar_ia)
+    router = router_para_usuario(store, user_id)
+    cv_res = construir_datos_cv(cand, job, router=router, usar_ia=usar_ia)
+    carta = generar_carta(cand, job, cv_res['habilidades_coincidentes'], router=router, usar_ia=usar_ia)
     base = {'job_id': job_id, 'empresa': job.get('empresa', ''), 'cargo': job.get('titulo', '')}
     store.save('documents', user_id, {**base, 'tipo': 'cv', 'contenido': cv_res['datos'],
                                       'generado_con': cv_res['generado_con'],
@@ -391,7 +435,8 @@ def responder_pregunta_formulario(job_id):
     pregunta = (request.get_json(silent=True) or {}).get('pregunta') or request.form.get('pregunta', '')
     if not job or not pregunta.strip():
         return jsonify({'error': 'Falta la oferta o la pregunta'}), 400
-    return jsonify(responder_pregunta(pregunta, obtener_perfil_profesional(user_id), job))
+    return jsonify(responder_pregunta(pregunta, obtener_perfil_profesional(user_id), job,
+                                      router=router_para_usuario(get_store(), user_id)))
 
 
 @autoapply_bp.route('/oferta/<job_id>/preparar', methods=['POST'])
@@ -429,7 +474,10 @@ def postular_manual(job_id):
     user_id = _user_id()
     engine = AutoApplyEngine(store)
     confirmado = request.form.get('confirmado') == 'on'
-    evidencia = request.form.get('evidencia', '')
+    evidencia = request.form.get('evidencia', '').strip()
+    if confirmado and len(evidencia) < 5:
+        flash('Para marcarla como confirmada indica la evidencia (correo recibido, captura, URL de confirmación).', 'warning')
+        return redirect(url_for('autoapply.oferta_detalle', job_id=job_id))
     engine.marcar_como_postulado(user_id, job_id, confirmado=confirmado, evidencia=evidencia)
     flash('Marcado como postulado.', 'success')
     return redirect(url_for('autoapply.oferta_detalle', job_id=job_id))
@@ -483,3 +531,6 @@ def api_descubrir():
     candidato = obtener_perfil_profesional(user_id)
     res = engine.descubrir(user_id, perfil, candidato)
     return jsonify(res)
+
+
+from . import routes_extra  # noqa: E402,F401  (páginas adicionales del módulo)

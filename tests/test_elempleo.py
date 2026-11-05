@@ -12,8 +12,9 @@ from autoapply.jobs import aplicar_filtros
 def tarjeta(i, titulo, empresa='ACME', ciudad='Bogotá', salario='$3 a $3,5 millones',
             contrato='Por obra o labor', modalidad='Remoto'):
     d = json.dumps({'id': i, 'title': titulo, 'company': empresa, 'location': ciudad, 'salary': salario})
+    slug = titulo.lower().replace(' ', '-')
     return f'''<div class="col-md-12 result-item mb-3">
-      <div class="js-area-bind" data-ga4-offerdata='{d}' data-url="/co/ofertas-trabajo/{titulo.lower().replace(' ', '-')}-{i}">
+      <div class="js-area-bind" data-ga4-offerdata='{d}' data-url="/co/ofertas-trabajo/{slug}-{i}">
         <h2><a class="js-offer-title" href="/x">{titulo}</a></h2>
         <span class="info-publish-date js-offer-date">Hace 2 días</span>
         <div class="small"><div>{salario}</div><div class="small-text">Salario</div></div>
