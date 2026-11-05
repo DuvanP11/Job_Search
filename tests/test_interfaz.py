@@ -201,3 +201,17 @@ def test_descubrir_en_local_sigue_siendo_directo(entorno, monkeypatch):
                         lambda *a, **k: {'nuevas': 0, 'ofertas': [], 'errores': [], 'advertencias': []})
     r = cliente().post('/autoaplicar/api/descubrir')
     assert r.status_code == 200 and st.list('queue', 'u1') == []
+
+
+def test_ejecutar_en_vercel_encola_y_no_corre_en_linea(entorno, monkeypatch):
+    st, cliente = entorno
+    monkeypatch.setenv('VERCEL', '1')
+    monkeypatch.delenv('AUTOAPPLY_BUSQUEDA', raising=False)
+    from autoapply.runner import AutoApplyRunner
+
+    def no_debe_correr(*a, **k):
+        raise AssertionError('Ejecutar no debe correr en la petición web en Vercel')
+    monkeypatch.setattr(AutoApplyRunner, 'ejecutar', no_debe_correr)
+    r = cliente().post('/autoaplicar/ejecutar', data={'modo': 'automatico'})
+    assert r.status_code == 302 and r.headers['Location'].endswith('/autoaplicar/cola')
+    assert [t['accion'] for t in st.list('queue', 'u1')] == ['descubrir']
