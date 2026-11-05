@@ -1,0 +1,16 @@
+<div class="bg-white border-bottom">
+  <div class="container">
+    <ul class="nav nav-pills small py-2 flex-wrap">
+      {% set ep = request.endpoint or '' %}
+      {% for nombre, destino, icono in [
+        ('Panel', 'autoapply.panel', 'chart-line'), ('Mi perfil', 'autoapply.candidato', 'user'),
+        ('Preferencias', 'autoapply.perfil', 'sliders-h'), ('Buscar', 'autoapply.index', 'search'),
+        ('Vacantes', 'autoapply.ofertas', 'list'), ('Cola', 'autoapply.cola', 'tasks'),
+        ('Auto Apply', 'autoapply.autonomo', 'robot'), ('Historial', 'autoapply.historial', 'history'),
+        ('Documentos', 'autoapply.documentos', 'file-alt'), ('IA', 'autoapply.ia', 'brain'),
+        ('Fuentes', 'autoapply.fuentes', 'plug'), ('Actividad', 'autoapply.actividad', 'stream')] %}
+      <li class="nav-item"><a class="nav-link py-1 {{ 'active' if ep == destino }}" href="{{ url_for(destino) }}"><i class="fas fa-{{ icono }}"></i> {{ nombre }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

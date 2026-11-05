@@ -1,0 +1,21 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Historial{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-history"></i> Historial de postulaciones</h2>
+<p class="text-muted small">Solo las marcadas como <strong>confirmadas</strong> tienen evidencia del portal; "enviada sin confirmación" debe verificarse en tu correo o en el portal.</p>
+<div class="card"><div class="table-responsive"><table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Fecha</th><th>Empresa / cargo</th><th>Portal</th><th>Compat.</th><th>Estado</th><th>Evidencia</th><th>Seguimiento</th></tr></thead><tbody>
+{% for j in jobs %}<tr><td class="small">{{ j._fecha }}</td>
+  <td><a href="{{ url_for('autoapply.oferta_detalle', job_id=j.id) }}">{{ j.titulo[:55] }}</a><br><small class="text-muted">{{ j.empresa }}{% if j.salario_minimo %} · ${{ '{:,.0f}'.format(j.salario_minimo) }} {{ j.moneda }}{% endif %}</small></td>
+  <td>{{ j.portal }}</td><td>{{ j.puntuacion }}</td>
+  <td><span class="badge bg-{{ 'success' if j.status in confirmados else 'warning text-dark' }}">{{ estados.get(j.status, j.status) }}</span></td>
+  <td class="small">{% if j.evidencia_envio and j.evidencia_envio.senal %}{{ j.evidencia_envio.senal }}<br>{% endif %}
+    {% for c in j._capturas %}<a href="{{ url_for('autoapply.evidencia', job_id=j.id, n=loop.index0) }}" target="_blank">captura {{ loop.index }}</a> {% endfor %}
+    {% if j.motivo_cambio and not j._capturas %}{{ j.motivo_cambio[:60] }}{% endif %}</td>
+  <td><form method="POST" action="{{ url_for('autoapply.cambiar_estado', job_id=j.id) }}" class="d-flex gap-1">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <select name="status" class="form-select form-select-sm">{% for k in ['en_proceso', 'entrevista', 'rechazada', 'oferta_laboral', 'cerrada'] %}<option value="{{ k }}" {{ 'selected' if j.status == k }}>{{ estados[k] }}</option>{% endfor %}</select>
+    <button class="btn btn-sm btn-outline-secondary">OK</button></form></td></tr>
+{% else %}<tr><td colspan="7" class="text-center text-muted">Todavía no hay postulaciones.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

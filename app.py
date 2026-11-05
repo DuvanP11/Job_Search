@@ -26,7 +26,20 @@ app.register_blueprint(autoapply_bp)
 # La clave firma las cookies de sesión: si se conoce, se pueden falsificar
 # sesiones de cualquier usuario. Por eso se lee del entorno.
 # El valor de respaldo solo sirve para desarrollo local.
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-only-inseguro-cambiar-en-produccion')
+_EN_PRODUCCION = bool(os.getenv('VERCEL') or os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('PRODUCTION'))
+_SECRET = os.getenv('SECRET_KEY')
+if not _SECRET:
+    if _EN_PRODUCCION:
+        # Nunca se firma con la clave pública de desarrollo en producción. Una clave aleatoria por
+        # proceso es segura (las sesiones no se comparten entre instancias hasta definir SECRET_KEY).
+        import logging as _logging
+        import secrets as _secrets
+        _SECRET = _secrets.token_hex(32)
+        _logging.getLogger(__name__).error('SECRET_KEY no está definida en producción: se usa una clave aleatoria '
+                                          'por proceso. Defínela en las variables de entorno.')
+    else:
+        _SECRET = 'dev-only-inseguro-cambiar-en-produccion'
+app.config['SECRET_KEY'] = _SECRET
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 # Vercel expone la app siempre por HTTPS y define VERCEL=1 en el entorno
@@ -964,8 +977,11 @@ def edit_profile():
 
 @app.route('/debug/storage')
 def debug_storage():
-    """Verificar estado del almacenamiento - SOLO PARA DEBUGGING"""
+    """Verificar estado del almacenamiento - SOLO PARA DEBUGGING (desactivado salvo ENABLE_DEBUG_ENDPOINTS=1)"""
     from utils.auth import get_current_user
+    import os as _os
+    if _os.getenv('ENABLE_DEBUG_ENDPOINTS') != '1':
+        return jsonify({'error': 'No encontrado'}), 404
     
     user = get_current_user()
     if not user:

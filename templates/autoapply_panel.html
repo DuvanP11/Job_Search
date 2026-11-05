@@ -1,0 +1,36 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-chart-line"></i> Panel de AI Auto Apply</h2>
+<p class="text-muted">Modo actual: <strong>{{ modo }}</strong>
+  {% if cfg.autonomo.habilitado %}<span class="badge bg-danger">Autónomo ACTIVO</span>{% else %}<span class="badge bg-secondary">Autónomo apagado</span>{% endif %}
+  · Envío real en este servidor: {{ 'sí' if envio_real else 'no (solo prueba)' }}</p>
+<div class="alert {{ 'alert-success' if latido.activo else 'alert-warning' }} py-2 small">
+  <i class="fas fa-heartbeat"></i> Worker: {{ latido.texto }}
+  {% if not latido.activo %} — sin worker, la cola no avanza. Inícialo con <code>python -m autoapply.worker</code>.{% endif %}
+</div>
+<div class="row g-3 mb-4">
+  {% for valor, etiqueta, clase in [
+    (s.descubiertas, 'Vacantes descubiertas', ''), (s.compatibles, 'Compatibles', 'text-primary'),
+    (s.preparadas, 'Postulaciones preparadas', 'text-info'), (s.enviadas, 'Enviadas', 'text-success'),
+    (s.confirmadas, 'Confirmadas por el portal', 'text-success'), (s.entrevistas, 'Entrevistas', 'text-warning'),
+    (s.ofertas, 'Ofertas recibidas', 'text-success'),
+    ((s.compat_promedio ~ '/100') if s.compat_promedio is not none else '—', 'Compatibilidad promedio', '')] %}
+  <div class="col-6 col-md-3"><div class="card text-center h-100"><div class="card-body">
+    <h3 class="{{ clase }}">{{ valor }}</h3><p class="text-muted small mb-0">{{ etiqueta }}</p></div></div></div>
+  {% endfor %}
+</div>
+{% if s.por_autorizar or s.requieren_usuario %}
+<div class="alert alert-info">
+  {% if s.por_autorizar %}<a href="{{ url_for('autoapply.cola') }}"><strong>{{ s.por_autorizar }}</strong> postulación(es) esperan tu autorización.</a>{% endif %}
+  {% if s.requieren_usuario %} · <a href="{{ url_for('autoapply.cola') }}"><strong>{{ s.requieren_usuario }}</strong> requieren tu intervención (CAPTCHA, preguntas sensibles…).</a>{% endif %}
+</div>{% endif %}
+<div class="card"><div class="card-header bg-white d-flex justify-content-between"><h5 class="mb-0">Actividad reciente del agente</h5>
+  <a href="{{ url_for('autoapply.actividad') }}" class="small">Ver todo</a></div>
+  <ul class="list-group list-group-flush">
+  {% for r in actividad %}<li class="list-group-item small">
+    <span class="badge bg-{{ 'danger' if r.nivel == 'error' else 'warning text-dark' if r.nivel == 'warning' else 'secondary' }}">{{ r.evento }}</span>
+    {{ r.detalle }} <span class="text-muted float-end">{{ r.ts[:16].replace('T', ' ') }}</span></li>
+  {% else %}<li class="list-group-item text-muted">Aún no hay actividad. Configura tus preferencias y pulsa "Buscar".</li>{% endfor %}
+  </ul></div>
+{% endblock %}

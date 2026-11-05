@@ -16,6 +16,7 @@
             </div>
         </div>
     </nav>
+    {% include 'autoapply_subnav.html' %}
 
     {% macro estado(campo) %}
         {% set e = estados.get(campo, 'pendiente') %}
@@ -33,6 +34,7 @@
         {% endwith %}
 
         <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="card mb-4">
                 <div class="card-header bg-white"><h5 class="mb-0">Datos personales</h5></div>
                 <div class="card-body">

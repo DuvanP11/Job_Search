@@ -21,6 +21,7 @@ from . import bitacora
 from .autorizacion import (autorizacion_vigente, autorizar_envio, consumir_autorizacion, evaluar_autonomo)
 from .browser import (CONFIRMADO, DRY_RUN, ENVIADO_SIN_CONFIRMACION, ERROR, REQUIERE_USUARIO,
                       SolicitudAplicacion, obtener_aplicador)
+from .ai import router_para_usuario
 from .cola import ColaTrabajo
 from .cv import obtener_perfil_profesional
 from .documents import (carta_a_pdf, construir_datos_cv, cv_a_pdf, generar_carta, responder_pregunta)
@@ -45,6 +46,9 @@ class Orquestador:
         self._ahora = ahora
 
     # ------------------------------------------------------------- utilidades
+    def _router(self, owner):
+        return self.router or router_para_usuario(self.store, owner)
+
     def _perfil(self, owner) -> Dict[str, Any]:
         p = self.store.get('profiles', owner, 'default') or {}
         cfg = {**DEFAULT_PROFILE_CONFIG, **(p.get('config') or {})}
@@ -94,8 +98,8 @@ class Orquestador:
             self.engine.actualizar_estado(owner, job_id, 'pendiente_documentos', 'Perfil profesional incompleto')
             self._log(owner, 'preparar_bloqueado', 'Perfil incompleto', 'warning', job_id, tarea_id)
             return {'ok': False, 'requiere_usuario': 'Completa tu perfil profesional.'}
-        cv_res = construir_datos_cv(cand, job, router=self.router)
-        carta = generar_carta(cand, job, cv_res['habilidades_coincidentes'], router=self.router)
+        cv_res = construir_datos_cv(cand, job, router=self._router(owner))
+        carta = generar_carta(cand, job, cv_res['habilidades_coincidentes'], router=self._router(owner))
         base = {'job_id': job_id, 'empresa': job.get('empresa', ''), 'cargo': job.get('titulo', '')}
         self.store.save('documents', owner, {**base, 'tipo': 'cv', 'contenido': cv_res['datos'],
                                              'generado_con': cv_res['generado_con'],
@@ -164,7 +168,7 @@ class Orquestador:
                 job=job, candidato=cand, archivos=self._archivos(docs, carpeta), carta_texto=carta,
                 enviar_real=enviar_real, carpeta_evidencia=evidencia_dir,
                 permitir_respuestas_ia=bool(cfg['autonomo'].get('permitir_respuestas_ia')) and not manual,
-                responder=lambda q: responder_pregunta(q, cand, job, router=self.router))
+                responder=lambda q: responder_pregunta(q, cand, job, router=self._router(owner)))
             res = aplicador.aplicar(solicitud)
         except Exception as exc:  # noqa: BLE001 - el navegador puede fallar de mil formas
             logger.exception('Aplicador falló')
@@ -244,6 +248,8 @@ class Orquestador:
         """Una pasada: descubrimientos que toquen + tareas pendientes. Idempotente y reanudable."""
         ahora = self._ahora or datetime.now(timezone.utc)
         hechos = {'descubrimientos': 0, 'tareas': 0}
+        self.store.save('worker_state', '_sistema', {'id': 'latido', 'ts': ahora.isoformat(), 'worker': worker,
+                                                     'envio_real': envio_real_habilitado()})
         for owner in self.store.owners('profiles'):
             if self._toca_descubrir(owner, ahora):
                 try:

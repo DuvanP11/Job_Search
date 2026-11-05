@@ -1,0 +1,13 @@
+{% extends 'autoapply_base.html' %}
+{% block titulo %}Privacidad{% endblock %}
+{% block contenido %}
+<h2><i class="fas fa-user-shield"></i> Tus datos</h2>
+<div class="card mb-4"><div class="card-body"><h5>Exportar</h5>
+  <p>Descarga un ZIP con tu perfil, CV, vacantes, documentos, autorizaciones, bitácora y capturas de evidencia.</p>
+  <a class="btn btn-outline-primary" href="{{ url_for('autoapply.exportar') }}"><i class="fas fa-download"></i> Descargar mis datos</a></div></div>
+<div class="card border-danger"><div class="card-body"><h5 class="text-danger">Eliminar</h5>
+  <p>Borra de forma definitiva todo lo que este módulo guarda sobre ti (perfil profesional, CV, vacantes, documentos, cola, bitácora y capturas). No afecta tu cuenta del portal.</p>
+  <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="input-group" style="max-width:380px"><input class="form-control" name="confirmacion" placeholder="Escribe ELIMINAR" autocomplete="off"><button class="btn btn-danger">Eliminar mis datos</button></div></form></div></div>
+<p class="small text-muted mt-3">Seguridad: las claves de IA y de portales no se guardan en este módulo; las contraseñas de portales, si las usas, se cifran en <a href="/credenciales">Credenciales</a>.</p>
+{% endblock %}
