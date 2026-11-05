@@ -55,3 +55,14 @@ def test_datos_desconocidos_no_penalizan_pero_bajan_confianza():
 def test_explicacion_presente_y_sin_promesa_de_contratacion():
     r = evaluar_compatibilidad(job(), PERFIL, CAND)
     assert r['explicacion'][-1].endswith('no es una probabilidad de contratación.') or 'indicador' in r['explicacion'][-1]
+
+
+def test_salario_en_otra_moneda_no_descarta():
+    r = evaluar_compatibilidad(job(salario_minimo=12500.0, moneda='EUR'), PERFIL, CAND)
+    assert estados(r)['salario'] == 'desconocido'
+    assert r['apto'] is True
+
+
+def test_salario_misma_moneda_si_es_menor_excluye():
+    r = evaluar_compatibilidad(job(salario_minimo=1000000.0, moneda='COP'), PERFIL, CAND)
+    assert estados(r)['salario'] == 'no_cumplido' and r['apto'] is False

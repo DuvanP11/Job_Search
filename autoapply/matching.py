@@ -179,6 +179,10 @@ def evaluar_compatibilidad(job: Dict[str, Any], profile: Dict[str, Any],
         reqs.append(_req('salario', 'Salario', DESCONOCIDO, 'La oferta no publica salario.'))
     elif minimo <= 0:
         reqs.append(_req('salario', 'Salario', DESCONOCIDO, 'No hay salario mínimo configurado.'))
+    elif (job.get('moneda') or '').upper() not in ('', (config.get('moneda') or 'COP').upper()):
+        reqs.append(_req('salario', 'Salario', DESCONOCIDO,
+                         f"El salario está en {job['moneda']} y tu mínimo en "
+                         f"{(config.get('moneda') or 'COP').upper()}: no se compara sin conversión."))
     elif job['salario_minimo'] >= minimo:
         reqs.append(_req('salario', 'Salario', CUMPLIDO, 'Cumple el mínimo configurado.'))
     else:
