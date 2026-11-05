@@ -60,6 +60,10 @@ Variables de entorno relevantes:
 
 ### Dónde corre el worker
 
+**Railway (recomendado):** el repo trae `Dockerfile.worker` y `railway.json`. Crea un proyecto desde el repo y define
+`DATABASE_URL` (la misma de Vercel) y `OPENROUTER_API_KEY`. Sin `AUTOAPPLY_ENABLE_SUBMIT` el worker no envía nada real.
+En el Mac, para pruebas: `scripts/correr_worker_local.sh`.
+
 Vercel (serverless) **no puede** ejecutar Playwright ni procesos largos: allí solo corre la web. El worker debe correr en tu Mac,
 un VPS o Railway (el `Procfile` ya declara el proceso `worker`), apuntando al mismo `DATABASE_URL`. La web solo encola y consulta: «Buscar ahora» crea una tarea `descubrir` en la cola y el worker la ejecuta (resultado en `/autoaplicar/cola`).
 Sin `DATABASE_URL`, web y worker deben compartir `AUTOAPPLY_DATA_DIR` en la misma máquina.
