@@ -10,9 +10,9 @@ from typing import Any, Dict, List
 
 from .adapters import obtener_adapter
 from .dedupe import buscar_duplicado, marcar_historial, ya_postulado
-from .jobs import aplicar_filtros, normalizar_job
+from .jobs import normalizar_job
 from .models import ESTADOS
-from .scoring import puntuar_oferta
+from .matching import evaluar_compatibilidad
 from .storage import get_store, huella_job
 
 logger = logging.getLogger(__name__)
@@ -44,12 +44,13 @@ class AutoApplyEngine:
                     duplicado = buscar_duplicado(oferta, self.store, user_id)
                     if duplicado:
                         continue
-                    filtros = aplicar_filtros(oferta, profile, candidate)
-                    puntuacion, detalle = puntuar_oferta(oferta, profile, candidate)
-                    oferta['filtros'] = filtros
-                    oferta['puntuacion'] = puntuacion
-                    oferta['scoring'] = detalle
-                    oferta['status'] = 'en_evaluacion' if filtros['pasa'] else 'descartada'
+                    match = evaluar_compatibilidad(oferta, profile, candidate)
+                    oferta['filtros'] = match['filtros']
+                    oferta['puntuacion'] = match['score']
+                    oferta['scoring'] = {'total': match['score'], 'razones': match['explicacion']}
+                    oferta['matching'] = {k: match[k] for k in
+                                          ('confianza', 'apto', 'excluyentes', 'requisitos', 'explicacion')}
+                    oferta['status'] = 'en_evaluacion' if match['apto'] else 'descartada'
                     guardado = marcar_historial(oferta, self.store, user_id, oferta['status'])
                     nuevas.append(guardado)
                 errores.extend(resultado.errores)
