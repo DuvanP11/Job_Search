@@ -8,25 +8,37 @@ from typing import Any, Dict, List
 
 # ==================== ESTADOS ====================
 ESTADOS = {
-    'detectada': 'Detectada',
-    'en_evaluacion': 'En evaluación',
+    'detectada': 'Descubierta',
+    'en_evaluacion': 'Evaluada',
     'descartada': 'Descartada',
-    'pendiente_revision': 'Pendiente de revisión',
+    'compatible': 'Compatible',
+    'pendiente_documentos': 'Pendiente de documentos',
+    'pendiente_revision': 'Lista para revisión',
     'lista_para_postular': 'Lista para postular',
-    'en_proceso': 'En proceso',
+    'pendiente_autorizacion': 'Pendiente de autorización',
+    'enviando': 'Enviando (agente trabajando)',
     'enviada_sin_confirmacion': 'Enviada sin confirmación verificable',
     'postulacion_confirmada': 'Postulación confirmada',
+    'en_proceso': 'En proceso de selección',
+    'entrevista': 'Entrevista',
+    'rechazada': 'Rechazada',
+    'oferta_laboral': 'Oferta laboral',
+    'cerrada': 'Cerrada',
     'requiere_intervencion': 'Requiere intervención',
     'error': 'Error',
 }
 
-ESTADOS_POSTULADOS = {'enviada_sin_confirmacion', 'postulacion_confirmada'}
-ESTADOS_TERMINALES = {'descartada', 'postulacion_confirmada', 'error'}
+# Estados que implican que YA se postuló: no se vuelve a postular ni a ofrecer.
+ESTADOS_POSTULADOS = {'enviada_sin_confirmacion', 'postulacion_confirmada', 'en_proceso',
+                      'entrevista', 'rechazada', 'oferta_laboral', 'cerrada_postulada'}
+# Solo estos cuentan como evidencia de envío real confirmado por el portal.
+ESTADOS_CONFIRMADOS = {'postulacion_confirmada', 'en_proceso', 'entrevista', 'rechazada', 'oferta_laboral'}
+ESTADOS_TERMINALES = {'descartada', 'postulacion_confirmada', 'error', 'rechazada', 'oferta_laboral', 'cerrada'}
 
 MODOS = {
-    'simulacion': 'Simulación (no envía)',
-    'revision': 'Revisión (prepara y pide aprobación)',
-    'automatico': 'Automático (envía si el portal lo permite)',
+    'simulacion': 'Manual (solo encuentra y evalúa; no prepara formularios)',
+    'revision': 'Asistido (prepara documentos y formulario; tú autorizas el envío)',
+    'automatico': 'Autónomo (envía solo lo que cumple tus reglas; desactivado hasta que lo habilites)',
 }
 
 MODALIDADES = ['presencial', 'hibrida', 'remota']
@@ -122,6 +134,17 @@ DEFAULT_PROFILE_CONFIG: Dict[str, Any] = {
         'zona': 'America/Bogota',
     },
     'resultados_por_cargo': 20,
+    'modo': 'revision',                 # simulacion=manual · revision=asistido · automatico=autónomo
+    'programacion': {'activa': False, 'cada_horas': 24, 'max_vacantes': 50},
+    # Modo autónomo: APAGADO hasta que el usuario lo habilite de forma explícita.
+    'autonomo': {
+        'habilitado': False,
+        'habilitado_en': '',            # fecha en que el usuario lo confirmó
+        'empresas_permitidas': [],      # si no está vacía, solo estas
+        'ubicaciones': [],              # vacío = las del perfil
+        'permitir_respuestas_ia': False,  # preguntas abiertas con borrador de IA
+        'ventana_horaria': True,        # respetar el horario del perfil
+    },
 }
 
 DEFAULT_CANDIDATE: Dict[str, Any] = {

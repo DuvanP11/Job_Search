@@ -13,6 +13,7 @@ cambiar los modelos existentes de usuarios y credenciales.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 import logging
@@ -23,6 +24,11 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +68,8 @@ class _FicheroJSON:
 
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
-        self._lock = threading.RLock()
+        self._rlock = threading.RLock()
+        self._local = threading.local()
         try:
             os.makedirs(self.data_dir, exist_ok=True)
         except OSError as exc:
@@ -73,6 +80,42 @@ class _FicheroJSON:
             )
             self.data_dir = respaldo
             os.makedirs(self.data_dir, exist_ok=True)
+
+    @contextlib.contextmanager
+    def _lock_ctx(self):
+        """Candado de hilo + de archivo (la web y el worker son procesos distintos). Reentrante."""
+        with self._rlock:
+            nivel = getattr(self._local, 'nivel', 0)
+            if fcntl is None or nivel:      # Windows: sin flock (usar PostgreSQL con varios procesos)
+                self._local.nivel = nivel + 1
+                try:
+                    yield
+                finally:
+                    self._local.nivel = nivel
+                return
+            os.makedirs(self.data_dir, exist_ok=True)
+            with open(os.path.join(self.data_dir, '.lock'), 'a') as fh:
+                fcntl.flock(fh, fcntl.LOCK_EX)
+                self._local.nivel = 1
+                try:
+                    yield
+                finally:
+                    self._local.nivel = 0
+                    fcntl.flock(fh, fcntl.LOCK_UN)
+
+    @property
+    def _lock(self):
+        return self._lock_ctx()
+
+    def owners(self, collection: str) -> List[str]:
+        seguro = re.sub(r'[^A-Za-z0-9_.-]', '_', collection)[:60]
+        salida = []
+        with self._lock_ctx():
+            for nombre in sorted(os.listdir(self.data_dir)):
+                ruta = os.path.join(self.data_dir, nombre, f'{seguro}.json')
+                if os.path.isfile(ruta) and self._leer(ruta):
+                    salida.append(nombre)
+        return salida
 
     def _ruta(self, owner_id: Any, collection: str) -> str:
         carpeta = os.path.join(self.data_dir, _slug_owner(owner_id))
@@ -251,6 +294,13 @@ class _Postgres:
                 )
             ).all()
             return [self._fila(f) for f in filas]
+
+    def owners(self, collection: str) -> List[str]:
+        with self.engine.connect() as conn:
+            filas = conn.execute(
+                self._select(self.tabla.c.owner_id).where(self.tabla.c.collection == collection).distinct()
+            ).all()
+            return [f[0] for f in filas]
 
     def _insertar(self, conn, record: Dict, collection: str) -> None:
         from sqlalchemy import insert
@@ -444,6 +494,10 @@ class Store:
             registros = [r for r in registros if where(r)]
         registros.sort(key=lambda r: r.get('created_at', ''), reverse=True)
         return registros[:limit] if limit else registros
+
+    def owners(self, collection: str) -> List[str]:
+        """Usuarios que tienen registros en la colección (para el worker)."""
+        return self._pg.owners(collection) if self._pg else self._json.owners(collection)
 
     def find_by_fingerprint(self, collection: str, owner_id: Any, fingerprint: str) -> Optional[Dict]:
         if self._pg:
