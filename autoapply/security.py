@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import ipaddress
 import re
+from urllib.parse import urlparse
 from typing import Any, Dict, List, Tuple
 
 
@@ -12,25 +14,38 @@ class AutoApplySecurityError(Exception):
     pass
 
 
-DIRECCIONES_SOSPECHOSAS = (
-    'localhost', '127.0.0.1', '0.0.0.0', '::1', '169.254', '10.', '192.168.',
-)
 DOMINIOS_BLOQUEADOS = (
     'linkedin.com', 'indeed.com', 'serviciodeempleo.gov.co',
 )
 
 
+def _host_interno(host: str) -> bool:
+    """True si el host es local, privado o reservado (protección SSRF)."""
+    host = host.strip('[]').lower().rstrip('.')
+    if host in ('localhost',) or host.endswith(('.localhost', '.local', '.internal')):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False  # nombre de dominio normal
+    return (ip.is_private or ip.is_loopback or ip.is_link_local
+            or ip.is_reserved or ip.is_multicast or ip.is_unspecified)
+
+
 def validar_url_aplicacion(url: str) -> Tuple[bool, str]:
-    if not url:
+    if not url or not str(url).strip():
         return False, 'La URL de postulación está vacía.'
-    url_limpia = url.strip()
-    if not url_limpia.startswith(('http://', 'https://')):
+    try:
+        partes = urlparse(str(url).strip())
+        host = (partes.hostname or '').lower()
+    except ValueError:
+        return False, 'La URL no es válida.'
+    if partes.scheme not in ('http', 'https') or not host:
         return False, 'La URL debe empezar por http:// o https://.'
-    url_baja = url_limpia.lower()
-    if any(d in url_baja for d in DIRECCIONES_SOSPECHOSAS):
+    if _host_interno(host):
         return False, 'No se permite postular a direcciones locales o internas.'
     for dom in DOMINIOS_BLOQUEADOS:
-        if dom in url_baja:
+        if host == dom or host.endswith('.' + dom):
             return False, f'La automatización está bloqueada para {dom} por restricciones de seguridad.'
     return True, ''
 
