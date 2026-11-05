@@ -55,12 +55,13 @@ Variables de entorno relevantes:
 | `AI_PROVIDER_ORDER` | Orden de proveedores, p. ej. `ollama,openrouter` |
 | `AUTOAPPLY_ENABLE_SUBMIT=1` | **Habilita el envío real** (solo en el worker) |
 | `AUTOAPPLY_DATA_DIR`, `AUTOAPPLY_INTERVALO_SEG` | Carpeta de datos / pausa del worker |
+| `AUTOAPPLY_BUSQUEDA=cola\|directo` | Dónde se hace «Buscar ahora». Por defecto `cola` en Vercel (la petición muere a los 60 s) y `directo` en local |
 | `ENABLE_DEBUG_ENDPOINTS=1` | Reactiva `/debug/storage` (apagado por defecto) |
 
 ### Dónde corre el worker
 
 Vercel (serverless) **no puede** ejecutar Playwright ni procesos largos: allí solo corre la web. El worker debe correr en tu Mac,
-un VPS o Railway (el `Procfile` ya declara el proceso `worker`), apuntando al mismo `DATABASE_URL`. La web solo encola y consulta.
+un VPS o Railway (el `Procfile` ya declara el proceso `worker`), apuntando al mismo `DATABASE_URL`. La web solo encola y consulta: «Buscar ahora» crea una tarea `descubrir` en la cola y el worker la ejecuta (resultado en `/autoaplicar/cola`).
 Sin `DATABASE_URL`, web y worker deben compartir `AUTOAPPLY_DATA_DIR` en la misma máquina.
 
 ## Seguridad y privacidad

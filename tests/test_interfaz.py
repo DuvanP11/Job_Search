@@ -172,3 +172,32 @@ def test_exportar_y_eliminar_datos(entorno):
     c.post('/autoaplicar/privacidad', data={'confirmacion': 'ELIMINAR'})
     assert all(st.list(col, 'u1') == [] for col in ('jobs', 'documents', 'candidate', 'profiles', 'cv'))
     assert not os.path.exists(os.path.join(st.data_dir, 'evidencia', 'u1'))
+
+
+def test_descubrir_en_vercel_encola_y_no_busca(entorno, monkeypatch):
+    st, cliente = entorno
+    monkeypatch.setenv('VERCEL', '1')
+    monkeypatch.delenv('AUTOAPPLY_BUSQUEDA', raising=False)
+    from autoapply.engine import AutoApplyEngine
+
+    def no_debe_buscar(*a, **k):
+        raise AssertionError('la web no debe buscar en línea en Vercel')
+    monkeypatch.setattr(AutoApplyEngine, 'descubrir', no_debe_buscar)
+    c = cliente()
+    r = c.post('/autoaplicar/api/descubrir')
+    assert r.status_code == 202 and r.get_json()['encolada'] is True
+    assert c.post('/autoaplicar/api/descubrir').get_json()['encolada'] is False     # ya hay una activa
+    r = c.post('/autoaplicar/descubrir')
+    assert r.status_code == 302 and r.headers['Location'].endswith('/autoaplicar/cola')
+    assert [t['accion'] for t in st.list('queue', 'u1')] == ['descubrir']
+
+
+def test_descubrir_en_local_sigue_siendo_directo(entorno, monkeypatch):
+    st, cliente = entorno
+    monkeypatch.delenv('VERCEL', raising=False)
+    monkeypatch.delenv('AUTOAPPLY_BUSQUEDA', raising=False)
+    from autoapply.engine import AutoApplyEngine
+    monkeypatch.setattr(AutoApplyEngine, 'descubrir',
+                        lambda *a, **k: {'nuevas': 0, 'ofertas': [], 'errores': [], 'advertencias': []})
+    r = cliente().post('/autoaplicar/api/descubrir')
+    assert r.status_code == 200 and st.list('queue', 'u1') == []

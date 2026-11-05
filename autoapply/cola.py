@@ -15,7 +15,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
 
 COLECCION = 'queue'
-ACCIONES = ('preparar', 'enviar')
+ACCIONES = ('preparar', 'enviar', 'descubrir')
+JOB_BUSQUEDA = 'busqueda'      # la búsqueda no es de una oferta: una sola tarea activa por usuario
 ACTIVOS = ('pendiente', 'en_curso')
 LEASE_SEGUNDOS = 900
 ESPERA_BASE = 60

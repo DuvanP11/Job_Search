@@ -7,7 +7,9 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import os
 import secrets
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any
 
@@ -16,6 +18,7 @@ from flask import (
 )
 
 from .ai import router_para_usuario
+from .cola import JOB_BUSQUEDA, ColaTrabajo
 from .cv import guardar_cv, guardar_perfil_profesional, obtener_perfil_profesional
 from .documents import (
     carta_a_docx, carta_a_pdf, construir_datos_cv, cv_a_docx, cv_a_pdf, generar_carta, responder_pregunta,
@@ -264,6 +267,21 @@ def cv_importar():
     return redirect(url_for('autoapply.candidato'))
 
 
+def _busqueda_en_cola() -> bool:
+    """En Vercel la petición muere a los 60 s: la búsqueda se encola y la hace el worker.
+    AUTOAPPLY_BUSQUEDA=cola|directo lo fuerza; sin ella, 'cola' en Vercel y 'directo' en local."""
+    modo = os.getenv('AUTOAPPLY_BUSQUEDA', '').lower()
+    return modo == 'cola' or (modo != 'directo' and bool(os.getenv('VERCEL')))
+
+
+def _worker_vivo(store) -> bool:
+    r = store.get('worker_state', '_sistema', 'latido') or {}
+    try:
+        return (datetime.now(timezone.utc) - datetime.fromisoformat(r['ts'])).total_seconds() < 300
+    except (KeyError, ValueError):
+        return False
+
+
 @autoapply_bp.route('/descubrir', methods=['POST'])
 @_requiere_login
 def descubrir():
@@ -275,6 +293,15 @@ def descubrir():
     if not perfil.get('config'):
         flash('Configura tu perfil primero.', 'warning')
         return redirect(url_for('autoapply.perfil'))
+    if _busqueda_en_cola():
+        tarea, nueva = ColaTrabajo(store).encolar(user_id, JOB_BUSQUEDA, 'descubrir')
+        if nueva:
+            flash('Búsqueda en marcha: la hace el worker en segundo plano. Revisa la cola en unos minutos.', 'info')
+        else:
+            flash('Ya hay una búsqueda en curso. Revisa la cola para ver el resultado.', 'info')
+        if not _worker_vivo(store):
+            flash('El worker parece detenido: la búsqueda esperará hasta que se inicie.', 'warning')
+        return redirect(url_for('autoapply.cola'))
     res = engine.descubrir(user_id, perfil, candidato)
     flash(f'Se encontraron {res["nuevas"]} ofertas nuevas.', 'info')
     return redirect(url_for('autoapply.index'))
@@ -527,6 +554,9 @@ def api_descubrir():
     store = get_store()
     user_id = _user_id()
     engine = AutoApplyEngine(store)
+    if _busqueda_en_cola():
+        tarea, nueva = ColaTrabajo(store).encolar(user_id, JOB_BUSQUEDA, 'descubrir')
+        return jsonify({'encolada': nueva, 'tarea': tarea['id'], 'worker_activo': _worker_vivo(store)}), 202
     perfil = _get_perfil(store, user_id)
     candidato = obtener_perfil_profesional(user_id)
     res = engine.descubrir(user_id, perfil, candidato)

@@ -216,3 +216,39 @@ def test_programacion_descubre_prepara_y_se_detiene_en_autorizacion(mundo, monke
     o._ahora += timedelta(hours=25)
     assert o.tick()['descubrimientos'] == 1
     assert len(store.list('jobs', 'u')) == 1                              # la oferta repetida no se duplica
+
+
+# ---------------------------------------------------- búsqueda en el worker (Vercel corta a los 60 s)
+def test_busqueda_encolada_la_hace_el_worker(mundo, monkeypatch):
+    store, o, _ = mundo
+    o._ahora = None                    # la cola encola con el reloj real
+    llamadas = []
+    monkeypatch.setattr(o, 'descubrir', lambda owner: llamadas.append(owner) or {'nuevas': 3, 'preparar_encoladas': 1,
+                                                                                  'errores': []})
+    t, nueva = o.cola.encolar('u', 'busqueda', 'descubrir')
+    assert nueva and not o.cola.encolar('u', 'busqueda', 'descubrir')[1]      # sin duplicar búsquedas activas
+    assert o.tick('w1')['tareas'] == 1 and llamadas == ['u']
+    t = store.get('queue', 'u', t['id'])
+    assert t['estado'] == 'completada' and t['resultado']['nuevas'] == 3
+
+
+def test_busqueda_sin_configurar_pide_al_usuario(mundo):
+    store, o, perfil = mundo
+    perfil(cargos=[])
+    o._ahora = None
+    t, _ = o.cola.encolar('u', 'busqueda', 'descubrir')
+    o.tick('w1')
+    assert store.get('queue', 'u', t['id'])['estado'] == 'requiere_usuario'
+
+
+def test_busqueda_que_falla_se_reintenta(mundo, monkeypatch):
+    store, o, _ = mundo
+
+    def boom(owner):
+        raise RuntimeError('portal caído')
+    monkeypatch.setattr(o, 'descubrir', boom)
+    o._ahora = None
+    t, _ = o.cola.encolar('u', 'busqueda', 'descubrir')
+    o.tick('w1')
+    t = store.get('queue', 'u', t['id'])
+    assert t['estado'] == 'pendiente' and 'portal caído' in t['ultimo_error']

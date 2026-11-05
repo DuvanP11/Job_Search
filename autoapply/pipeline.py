@@ -211,6 +211,14 @@ class Orquestador:
     def procesar_tarea(self, owner, tarea: Dict[str, Any], aplicador=None) -> Dict[str, Any]:
         tid = tarea['id']
         try:
+            if tarea['accion'] == 'descubrir':
+                r = self.descubrir(owner)
+                if r.get('omitido'):
+                    self.cola.requiere_usuario(owner, tid, 'Configura cargos y portales en tu perfil.')
+                else:
+                    self.cola.completar(owner, tid, {k: r.get(k) for k in ('nuevas', 'preparar_encoladas')}
+                                        | {'errores': (r.get('errores') or [])[:5]})
+                return r
             if tarea['accion'] == 'preparar':
                 r = self.preparar(owner, tarea['job_id'], tid)
                 if r.get('requiere_usuario'):
