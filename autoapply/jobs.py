@@ -525,6 +525,14 @@ def aplicar_filtros(job: Dict[str, Any], profile: Dict[str, Any],
         except ValueError:
             pass
 
+    vigente = job.get('vigente_hasta')
+    if vigente:
+        try:
+            if date.fromisoformat(str(vigente)[:10]) < date.today():
+                motivos.append(f'La oferta venció el {str(vigente)[:10]}.')
+        except ValueError:
+            pass
+
     if job.get('modalidad') == '':
         advertencias.append('La modalidad no está especificada en la oferta.')
     if job.get('salario_minimo') is None:
