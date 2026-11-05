@@ -120,6 +120,61 @@ def _dividir_secciones(texto: str) -> Dict[str, List[str]]:
     return salida
 
 
+_MESES = {'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6, 'julio': 7,
+          'agosto': 8, 'septiembre': 9, 'setiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12,
+          'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'ago': 8, 'sep': 9,
+          'oct': 10, 'nov': 11, 'dic': 12}
+_FECHA = (r'(?:(?:[a-z]{3,10})\.?\s+(?:de\s+)?\d{4}|\d{1,2}/\d{4}|\d{4}-\d{1,2}|\d{4})')
+_RANGO = re.compile(r'(' + _FECHA + r')\s*(?:a|al|-|–|—|hasta)\s*(' + _FECHA + r'|actual(?:idad)?|presente|hoy|current|present)',
+                    re.IGNORECASE)
+
+
+def _fecha_iso(texto: str) -> str:
+    t = sin_acentos(texto).strip(' .')
+    if t in ('actual', 'actualidad', 'presente', 'hoy', 'current', 'present'):
+        return 'actual'
+    m = re.fullmatch(r'(\d{4})-(\d{1,2})', t)
+    if m:
+        return f'{m.group(1)}-{int(m.group(2)):02d}'
+    m = re.fullmatch(r'(\d{1,2})/(\d{4})', t)
+    if m:
+        return f'{m.group(2)}-{int(m.group(1)):02d}'
+    m = re.fullmatch(r'([a-z]{3,10})\.?\s+(?:de\s+)?(\d{4})', t)
+    if m and m.group(1) in _MESES:
+        return f'{m.group(2)}-{_MESES[m.group(1)]:02d}'
+    m = re.fullmatch(r'(\d{4})', t)
+    return m.group(1) if m else ''
+
+
+def _extraer_experiencia(lineas: List[str]) -> List[Dict[str, Any]]:
+    """Cada rango de fechas abre una entrada; el cargo/empresa es la línea
+    previa (o la misma línea) y lo demás son responsabilidades."""
+    entradas: List[Dict[str, Any]] = []
+    previa = ''
+    for linea in lineas:
+        m = _RANGO.search(linea)
+        if m:
+            desde, hasta = _fecha_iso(m.group(1)), _fecha_iso(m.group(2))
+            titulo = (linea[:m.start()] + ' ' + linea[m.end():]).strip(' -–—|,:()') or previa
+            if not desde or not hasta:
+                previa = linea
+                continue
+            partes = [x.strip() for x in re.split(r'\s+[-–—|@]\s+|\s+en\s+|\s+at\s+', titulo, maxsplit=1)]
+            cargo, empresa = (partes[0], partes[1]) if len(partes) == 2 else (partes[0], '')
+            entradas.append({'cargo': cargo[:120], 'empresa': empresa[:120], 'desde': desde,
+                             'hasta': hasta, 'responsabilidades': [], 'logros': []})
+            previa = ''
+        elif entradas and not previa and len(linea) > 0 and not _RANGO.search(linea):
+            # ¿es el encabezado de la próxima entrada? (corto, sin punto final) o una responsabilidad
+            if len(linea) <= 80 and not linea.endswith('.') and not linea.startswith(('-', '•', '*', '·')):
+                previa = linea
+            else:
+                entradas[-1]['responsabilidades'].append(linea.lstrip('-•*· ')[:300])
+        else:
+            previa = linea if not entradas or len(linea) <= 80 else previa
+    return entradas
+
+
 def extraer_basico(texto: str) -> Dict[str, Any]:
     """Extracción sin IA: solo lo que se puede leer literalmente."""
     cand = candidate_vacio()
@@ -160,6 +215,7 @@ def extraer_basico(texto: str) -> Dict[str, Any]:
             cand['idiomas'].append({'idioma': nombre.capitalize(), 'nivel': nivel})
 
     cand['certificaciones'] = [l.lstrip('-•* ')[:120] for l in sec.get('certificaciones', [])][:15]
+    cand['experiencia'] = _extraer_experiencia(sec.get('experiencia', []))
     return cand
 
 

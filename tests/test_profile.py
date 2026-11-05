@@ -133,3 +133,14 @@ def test_extraer_texto_docx():
     buf = io.BytesIO()
     d.save(buf)
     assert 'Power BI' in extraer_texto(buf.getvalue(), 'cv.docx')
+
+
+def test_basico_experiencia_con_meses_en_texto_y_barras():
+    t = ("Juan Pérez\nExperiencia\nGerente de Ventas | ACME S.A.\nMarzo 2019 - Actual\n"
+         "- Lideré un equipo de 10 personas.\nAsesor comercial en Beta Ltda\n03/2016 - 02/2019\n"
+         "Atención a clientes corporativos.\n")
+    exp = extraer_basico(t)['experiencia']
+    assert [(e['cargo'], e['empresa'], e['desde'], e['hasta']) for e in exp] == [
+        ('Gerente de Ventas', 'ACME S.A.', '2019-03', 'actual'),
+        ('Asesor comercial', 'Beta Ltda', '2016-03', '2019-02')]
+    assert exp[0]['responsabilidades'] == ['Lideré un equipo de 10 personas.']
