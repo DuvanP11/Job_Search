@@ -282,6 +282,15 @@ def _worker_vivo(store) -> bool:
         return False
 
 
+def _encolar_busqueda(store, user_id):
+    _, nueva = ColaTrabajo(store).encolar(user_id, JOB_BUSQUEDA, 'descubrir')
+    flash('Búsqueda en marcha: la hace el worker en segundo plano. Revisa la cola en unos minutos.' if nueva
+          else 'Ya hay una búsqueda en curso. Revisa la cola para ver el resultado.', 'info')
+    if not _worker_vivo(store):
+        flash('El worker parece detenido: la tarea esperará hasta que se inicie.', 'warning')
+    return redirect(url_for('autoapply.cola'))
+
+
 @autoapply_bp.route('/descubrir', methods=['POST'])
 @_requiere_login
 def descubrir():
@@ -294,14 +303,7 @@ def descubrir():
         flash('Configura tu perfil primero.', 'warning')
         return redirect(url_for('autoapply.perfil'))
     if _busqueda_en_cola():
-        tarea, nueva = ColaTrabajo(store).encolar(user_id, JOB_BUSQUEDA, 'descubrir')
-        if nueva:
-            flash('Búsqueda en marcha: la hace el worker en segundo plano. Revisa la cola en unos minutos.', 'info')
-        else:
-            flash('Ya hay una búsqueda en curso. Revisa la cola para ver el resultado.', 'info')
-        if not _worker_vivo(store):
-            flash('El worker parece detenido: la búsqueda esperará hasta que se inicie.', 'warning')
-        return redirect(url_for('autoapply.cola'))
+        return _encolar_busqueda(store, user_id)
     res = engine.descubrir(user_id, perfil, candidato)
     flash(f'Se encontraron {res["nuevas"]} ofertas nuevas.', 'info')
     return redirect(url_for('autoapply.index'))
@@ -320,6 +322,13 @@ def ejecutar():
     if not perfil.get('config'):
         flash('Configura tu perfil primero.', 'warning')
         return redirect(url_for('autoapply.perfil'))
+    if _busqueda_en_cola():
+        # Ejecutar busca y prepara en línea (minutos): en Vercel lo hace el worker. El envío
+        # nunca sale de aquí: pasa por la autorización de cada oferta en la cola.
+        errores = validar_config_perfil(perfil['config'])
+        for e in errores:
+            flash(e, 'danger')
+        return _encolar_busqueda(store, user_id) if not errores else redirect(url_for('autoapply.index'))
     res = runner.ejecutar(user_id, perfil, candidato, modo=modo, confirmar_todo=confirmar_todo)
     if not res.get('ok'):
         for e in res.get('errores', []):
