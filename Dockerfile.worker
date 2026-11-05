@@ -1,0 +1,15 @@
+# Worker de AI Auto Apply para Railway (proceso aparte de la web, que vive en Vercel).
+# Corre: python -m autoapply.worker  (busca ofertas, prepara documentos, rellena formularios).
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+WORKDIR /app
+COPY requirements.txt requirements-worker.txt ./
+RUN pip install -r requirements.txt -r requirements-worker.txt \
+    && python -m playwright install --with-deps chromium
+
+COPY . .
+
+# El envío real NO se activa aquí: se habilita con la variable AUTOAPPLY_ENABLE_SUBMIT=1 en Railway.
+CMD ["python", "-m", "autoapply.worker"]
