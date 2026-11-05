@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from .models import ESTADOS_POSTULADOS
 from .storage import huella_empresa_cargo, huella_job
 
 
@@ -19,9 +20,7 @@ def buscar_duplicado(job: Dict[str, Any], store, owner_id: Any,
     huella_ec = job.get('fingerprint_empresa') or huella_empresa_cargo(job)
     if huella_ec:
         for registro in store.list(collection, owner_id):
-            if registro.get('fingerprint_empresa') == huella_ec and registro.get('status') in (
-                'enviada_sin_confirmacion', 'postulacion_confirmada', 'en_proceso'
-            ):
+            if registro.get('fingerprint_empresa') == huella_ec and registro.get('status') in ESTADOS_POSTULADOS:
                 return registro
     return None
 
@@ -30,7 +29,7 @@ def ya_postulado(job: Dict[str, Any], store, owner_id: Any) -> bool:
     duplicado = buscar_duplicado(job, store, owner_id)
     if not duplicado:
         return False
-    return duplicado.get('status') in ('enviada_sin_confirmacion', 'postulacion_confirmada')
+    return duplicado.get('status') in ESTADOS_POSTULADOS
 
 
 def marcar_historial(job: Dict[str, Any], store, owner_id: Any,

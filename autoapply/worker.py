@@ -1,68 +1,78 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Worker en segundo plano (ejecución fuera del request web)."""
+"""Worker en segundo plano (proceso aparte de la web).
+
+    python -m autoapply.worker                # bucle continuo
+    python -m autoapply.worker --una-vez      # una pasada y salir (cron)
+
+Variables de entorno:
+    AUTOAPPLY_ENABLE_SUBMIT=1   permite el ENVÍO REAL. Sin ella solo rellena y verifica (dry-run).
+    AUTOAPPLY_INTERVALO_SEG     espera entre pasadas (por defecto 60)
+    AUTOAPPLY_DATA_DIR / DATABASE_URL   almacén compartido con la web
+"""
 
 from __future__ import annotations
 
-import json
+import argparse
 import logging
 import os
+import signal
+import socket
 import time
-from typing import Any, Dict
 
-from .runner import AutoApplyRunner
-from .storage import get_store
+from .pipeline import Orquestador, envio_real_habilitado
 
 logger = logging.getLogger(__name__)
 
 
 class AutoApplyWorker:
-    def __init__(self):
-        self.store = get_store()
-        self.runner = AutoApplyRunner(self.store)
+    def __init__(self, store=None, nombre: str = ''):
+        self.nombre = nombre or f'{socket.gethostname()}:{os.getpid()}'
+        self.orquestador = Orquestador(store)
+        self._parar = False
 
-    def _cargar_perfil(self, user_id: Any) -> Dict[str, Any]:
-        perfil = self.store.get('profiles', user_id, 'default')
-        if perfil:
-            return perfil
-        perfil = self.store.list('profiles', user_id)
-        return perfil[0] if perfil else {}
+    def parar(self, *_):
+        logger.info('Señal de parada recibida; termino la tarea en curso.')
+        self._parar = True
 
-    def _cargar_candidato(self, user_id: Any):
-        from .cv import obtener_perfil_profesional
-        return obtener_perfil_profesional(user_id)
+    def una_pasada(self) -> dict:
+        return self.orquestador.tick(self.nombre)
 
-    def ejecutar_una_vez(self, user_id: Any, modo: str = 'simulacion',
-                         confirmar_todo: bool = False) -> Dict[str, Any]:
-        perfil = self._cargar_perfil(user_id)
-        candidato = self._cargar_candidato(user_id)
-        if not perfil:
-            return {'ok': False, 'error': 'No hay perfil configurado'}
-        return self.runner.ejecutar(user_id, perfil, candidato, modo=modo,
-                                    confirmar_todo=confirmar_todo)
-
-    def bucle(self, user_id: Any, modo: str = 'simulacion', intervalo_min: int = 60,
-              max_iteraciones: int = None):
-        iteracion = 0
-        while True:
+    def bucle(self, intervalo: int = 60, max_iteraciones=None):
+        for sig in (signal.SIGINT, signal.SIGTERM):
             try:
-                resultado = self.ejecutar_una_vez(user_id, modo=modo)
-                logger.info('AutoApply worker: %s', resultado)
-            except Exception as exc:  # noqa: BLE001
-                logger.error('Error en worker AutoApply: %s', exc)
-            iteracion += 1
-            if max_iteraciones and iteracion >= max_iteraciones:
+                signal.signal(sig, self.parar)
+            except ValueError:      # no es el hilo principal
+                pass
+        logger.info('Worker %s iniciado. Envío real: %s', self.nombre,
+                    'HABILITADO' if envio_real_habilitado() else 'deshabilitado (dry-run)')
+        i = 0
+        while not self._parar:
+            try:
+                r = self.una_pasada()
+                if r['tareas'] or r['descubrimientos']:
+                    logger.info('Pasada: %s', r)
+            except Exception:  # noqa: BLE001 - el bucle nunca debe morir por una tarea
+                logger.exception('Error en la pasada del worker')
+            i += 1
+            if max_iteraciones and i >= max_iteraciones:
                 break
-            time.sleep(max_iteraciones is None and intervalo_min * 60 or 5)
+            for _ in range(intervalo):          # dormir en trozos para reaccionar a la señal de parada
+                if self._parar:
+                    break
+                time.sleep(1)
 
 
-def main():
-    logging.basicConfig(level=logging.INFO)
-    user_id = os.getenv('AUTOAPPLY_USER_ID') or '1'
-    modo = os.getenv('AUTOAPPLY_MODO') or 'simulacion'
-    intervalo = int(os.getenv('AUTOAPPLY_INTERVALO_MIN') or 60)
-    worker = AutoApplyWorker()
-    worker.bucle(user_id, modo=modo, intervalo_min=intervalo)
+def main(argv=None):
+    ap = argparse.ArgumentParser(description='Worker de AI Auto Apply')
+    ap.add_argument('--una-vez', action='store_true')
+    args = ap.parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    w = AutoApplyWorker()
+    if args.una_vez:
+        print(w.una_pasada())
+    else:
+        w.bucle(int(os.getenv('AUTOAPPLY_INTERVALO_SEG') or 60))
 
 
 if __name__ == '__main__':
