@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
+from .adapters import obtener_adapter
 from .engine import AutoApplyEngine
 from .security import validar_config_perfil, requiere_confirmacion_humana
 
@@ -128,9 +129,28 @@ class AutoApplyRunner:
                                               prep['preparacion'].get('mensaje', ''))
                 continue
 
+            # Envío REAL: solo se marca como postulada si el adaptador lo
+            # envió. Nunca se simula un envío exitoso.
+            job = self.engine.obtener(user_id, oferta['id'])
+            adapter = obtener_adapter(oferta.get('portal'))
+            envio = adapter.postular(job, candidate) if adapter else None
+            if envio is None or not envio.enviado:
+                mensaje = (envio.mensaje if envio else 'Sin adaptador para este portal')
+                resultado['saltadas'].append({
+                    'id': oferta.get('id'),
+                    'titulo': oferta.get('titulo'),
+                    'motivo': mensaje or 'El adaptador no envió la postulación',
+                })
+                self.engine.actualizar_estado(user_id, oferta['id'], 'requiere_intervencion', mensaje)
+                continue
+
             resultado['postuladas'] += 1
             ya_hoy += 1
-            self.engine.actualizar_estado(user_id, oferta['id'], 'enviada_sin_confirmacion',
-                                          'Procesado en modo automático (sin confirmación verificable)')
+            if envio.confirmado:
+                self.engine.marcar_como_postulado(user_id, oferta['id'], confirmado=True,
+                                                  evidencia=envio.captura_evidencia or envio.url_resultado)
+            else:
+                self.engine.marcar_como_postulado(user_id, oferta['id'], confirmado=False,
+                                                  evidencia=envio.mensaje)
 
         return resultado
