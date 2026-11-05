@@ -50,6 +50,8 @@ def test_greenhouse_mapea_y_limpia_html_escapado(monkeypatch):
     assert o['fecha_publicacion'] == '2026-09-03'
     assert o['pais'] == ''           # no se asume Colombia para fuentes internacionales
     assert o['anios_experiencia'] == 3
+    assert o['application_url'] == 'https://job-boards.greenhouse.io/embed/job_app?for=acme&token=1'
+    assert o['url'] == 'https://acme.com/j/1'
 
 
 def test_lever_salario_modalidad_y_fecha_epoch(monkeypatch):
