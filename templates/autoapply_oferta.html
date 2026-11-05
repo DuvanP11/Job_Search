@@ -61,6 +61,30 @@
                             {% endfor %}
                         </ul>
                         {% endif %}
+                        {% if job.matching %}
+                        <hr>
+                        <h5>Compatibilidad: {{ job.puntuacion }}/100
+                            <small class="text-muted">({{ job.matching.confianza }}% verificable)</small></h5>
+                        <p class="small text-muted">Indicador de afinidad, no una probabilidad de contratación.</p>
+                        {% if not job.matching.apto %}
+                        <div class="alert alert-warning py-2">No apta: hay requisitos excluyentes sin cumplir.</div>
+                        {% endif %}
+                        <table class="table table-sm">
+                            <thead><tr><th>Requisito</th><th>Estado</th><th>Detalle</th></tr></thead>
+                            <tbody>
+                            {% for r in job.matching.requisitos %}
+                            <tr>
+                                <td>{{ r.requisito }}{% if r.obligatorio %} <span class="badge bg-dark">excluyente</span>{% endif %}</td>
+                                <td>{% if r.estado == 'cumplido' %}<span class="badge bg-success">Cumplido</span>
+                                    {% elif r.estado == 'parcial' %}<span class="badge bg-warning text-dark">Parcial</span>
+                                    {% elif r.estado == 'no_cumplido' %}<span class="badge bg-danger">No cumplido</span>
+                                    {% else %}<span class="badge bg-secondary">Desconocido</span>{% endif %}</td>
+                                <td>{{ r.detalle }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
                         {% if job.filtros %}
                         <hr>
                         <h5>Evaluación de filtros</h5>
